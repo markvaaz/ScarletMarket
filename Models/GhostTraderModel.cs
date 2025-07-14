@@ -2,6 +2,7 @@ using ProjectM;
 using ProjectM.Tiles;
 using ScarletCore;
 using ScarletCore.Services;
+using ScarletCore.Utils;
 using Stunlock.Core;
 using Unity.Collections;
 using Unity.Entities;
@@ -59,25 +60,25 @@ internal class GhostTraderModel {
   }
 
   public void Show() {
-    if (StorageChest != Entity.Null && StorageChest.Exists()) {
+    if (StorageChest != Entity.Null && StorageChest.Exists() && BuffService.HasBuff(StorageChest, Buffs.Invisibility)) {
       BuffService.TryRemoveBuff(StorageChest, Buffs.Invisibility);
     }
-    if (Trader != Entity.Null && Trader.Exists()) {
+    if (Trader != Entity.Null && Trader.Exists() && BuffService.HasBuff(Trader, Buffs.Invisibility)) {
       BuffService.TryRemoveBuff(Trader, Buffs.Invisibility);
     }
-    if (Coffin != Entity.Null && Coffin.Exists()) {
+    if (Coffin != Entity.Null && Coffin.Exists() && BuffService.HasBuff(Coffin, Buffs.Invisibility)) {
       BuffService.TryRemoveBuff(Coffin, Buffs.Invisibility);
     }
   }
 
   public void Hide() {
-    if (StorageChest != Entity.Null && StorageChest.Exists()) {
+    if (StorageChest != Entity.Null && StorageChest.Exists() && !BuffService.HasBuff(StorageChest, Buffs.Invisibility)) {
       BuffService.TryApplyBuff(StorageChest, Buffs.Invisibility);
     }
-    if (Trader != Entity.Null && Trader.Exists()) {
+    if (Trader != Entity.Null && Trader.Exists() && !BuffService.HasBuff(Trader, Buffs.Invisibility)) {
       BuffService.TryApplyBuff(Trader, Buffs.Invisibility);
     }
-    if (Coffin != Entity.Null && Coffin.Exists()) {
+    if (Coffin != Entity.Null && Coffin.Exists() && !BuffService.HasBuff(Coffin, Buffs.Invisibility)) {
       BuffService.TryApplyBuff(Coffin, Buffs.Invisibility);
     }
   }

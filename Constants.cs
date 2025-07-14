@@ -11,7 +11,12 @@ internal static class Constants {
   public const string STORAGE_ID = "__ScarletMarket.Storage__";
   public const string COFFIN_ID = "__ScarletMarket.Coffin__";
   public const string PLOT_ID = "__ScarletMarket.Plot__";
-  public const string TEMP_ENTITY_ID = "__ScarletMarket.TempTrader__";
+  public const string GHOST_TRADER_ID = "__ScarletMarket.GTrader__";
+  public const string GHOST_STAND_ID = "__ScarletMarket.GStand__";
+  public const string GHOST_STORAGE_ID = "__ScarletMarket.GStorage__";
+  public const string GHOST_COFFIN_ID = "__ScarletMarket.GCoffin__";
+  public const string GHOST_PLOT_ID = "__ScarletMarket.GPlot__";
+  public const string INSPECT_ID = "__ScarletMarket.Inspect__";
   public const string DISABLED_MESSAGE = "3bf7e066-4e49-4ae4-b7a3-6703b7a15dc1";
   public const string ENABLED_MESSAGE = "f0c8d1b2-3e4a-4c5b-8f6d-7e8f9a0b1c2d";
   public const string DONE_MESSAGE = "54d48cbf-6817-42e5-a23f-354ca531c514";
@@ -24,10 +29,11 @@ internal static class Constants {
   public const string OPEN_MESSAGE = "4ab8d098-2c0c-4719-bf0f-852522d2b424";
   public const string CLOSE_MESSAGE = "9b97e97d-7d95-4900-af81-1f8457c25182";
   public const int COFFIN_HEIGHT = 223;
-  public const float PLOT_RADIUS = 2f;
+  public const float PLOT_RADIUS = 2.1f;
   public static readonly PrefabGUID NEUTRAL_FACTION = new(-1430861195);
   public static readonly PrefabGUID BLOCK_SLOT_ITEM = new(-696770536);
   public static readonly PrefabGUID SCT_PREFAB = new(-1404311249);
+  public static readonly PrefabGUID INTERACT_INSPECT = new(222103866);
   public static NativeParallelHashMap<PrefabGUID, Entity> PrefabGuidToEntityMap = GameSystems.PrefabCollectionSystem._PrefabGuidToEntityMap;
 }
 
@@ -37,6 +43,7 @@ internal static class Spawnable {
   public static readonly PrefabGUID Coffin = new(723455393);
   public static readonly PrefabGUID Trader = new(-823557242); // 1703325932 1502148822 40217214 -823557242
   public static readonly PrefabGUID DuelCircle = new(-893175652);
+  public static readonly PrefabGUID Inspect = new(1727016613);
 }
 
 internal static class Buffs {
@@ -45,6 +52,7 @@ internal static class Buffs {
   public static readonly PrefabGUID Immaterial = new(1360141727);
   public static readonly PrefabGUID Invisibility = new(1880224358);
   public static readonly PrefabGUID ClosedVisualClue = new(647429443);
+  public static readonly PrefabGUID Ghost = new(-259674366);
 }
 
 internal static class TraderState {

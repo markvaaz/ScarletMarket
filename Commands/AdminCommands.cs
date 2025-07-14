@@ -1,3 +1,5 @@
+using System;
+using ScarletCore;
 using ScarletCore.Services;
 using ScarletCore.Utils;
 using ScarletMarket.Services;
@@ -19,6 +21,58 @@ public static class AdminCommands {
     }
 
     ctx.Reply($"Plot created at {plot.Position}.".FormatSuccess());
+  }
+
+  [Command("claimaccess", adminOnly: true)]
+  public static void GiveMeAccess(ChatCommandContext ctx) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    if (!TraderService.TryGetPlot(player.Position, out var plot)) {
+      ctx.Reply("You need to be inside a plot to get access.".FormatError());
+      return;
+    }
+
+    if (!TraderService.TryGetTraderInPlot(plot, out var trader)) {
+      ctx.Reply("No shop found in this plot.".FormatError());
+      return;
+    }
+
+    trader.Stand.SetTeam(player.CharacterEntity);
+    trader.StorageChest.SetTeam(player.CharacterEntity);
+
+    ctx.Reply($"You now have access to the shop at {plot.Position}.".FormatSuccess());
+  }
+
+  [Command("revokeaccess", adminOnly: true)]
+  public static void RevokeMyAccess(ChatCommandContext ctx) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    if (!TraderService.TryGetPlot(player.Position, out var plot)) {
+
+      return;
+    }
+
+    if (!TraderService.TryGetTraderInPlot(plot, out var trader)) {
+      ctx.Reply("No shop found in this plot.".FormatError());
+      return;
+    }
+
+    if (trader.State == TraderState.Ready) {
+      trader.Stand.SetTeam(TraderService.DefaultStandEntity);
+    } else {
+      trader.Stand.SetTeam(trader.Owner.CharacterEntity);
+    }
+
+    trader.StorageChest.SetTeam(trader.Owner.CharacterEntity);
+
+    // given acces back to the owner
+    ctx.Reply($"Access revoked! Shop is now private to its owner.".FormatSuccess());
   }
 
   [Command("remove shop", adminOnly: true)]
@@ -138,7 +192,65 @@ public static class AdminCommands {
     ctx.Reply($"Removed {count} empty shops.".FormatSuccess());
   }
 
-  [Command("iwanttoremoveall", "Remove all entities. Be careful!", adminOnly: true)]
+  [Command("get inactive shops", adminOnly: true)]
+  public static void GetInactiveShops(ChatCommandContext ctx, int days) {
+    var platformIds = TraderService.TraderById.Keys;
+    int count = 0;
+
+    foreach (var id in platformIds) {
+      if (!PlayerService.TryGetById(id, out var player)) {
+        continue;
+      }
+
+      var lastConnected = player.ConnectedSince;
+
+      if (lastConnected.AddDays(days) > DateTime.UtcNow) {
+        continue;
+      }
+
+      var trader = TraderService.GetTrader(player.PlatformId);
+
+      if (trader == null) {
+        continue;
+      }
+
+      count++;
+      ctx.Reply($"Inactive shop found: ~{trader.Name}~ at ~{trader.Position}~ (Last connected: ~{lastConnected}~)".FormatSuccess());
+    }
+
+    ctx.Reply($"Found ~{count}~ inactive shops that haven't been used in the last ~{days}~ days.".Format());
+  }
+
+  [Command("iwanttoclearinactiveshops", adminOnly: true)]
+  public static void ClearInactiveShops(ChatCommandContext ctx, int days) {
+    var platformId = TraderService.TraderById.Keys;
+    int count = 0;
+
+    foreach (var id in platformId) {
+      if (!PlayerService.TryGetById(id, out var player)) {
+        continue;
+      }
+
+      var lastConnected = player.ConnectedSince;
+
+      if (lastConnected.AddDays(days) > DateTime.UtcNow) {
+        continue;
+      }
+
+      var trader = TraderService.GetTrader(player.PlatformId);
+
+      if (trader == null) {
+        continue;
+      }
+
+      count++;
+      TraderService.ForceRemoveTrader(player);
+    }
+
+    ctx.Reply($"Removed {count} inactive shops that haven't been used in the last {days} days.".FormatSuccess());
+  }
+
+  [Command("iwanttoremoveeverything", "Remove all shop related entities. Be careful!", adminOnly: true)]
   public static void RemoveAllEntities(ChatCommandContext ctx) {
     TraderService.ClearAll();
     ctx.Reply("All entities have been cleared.".FormatSuccess());

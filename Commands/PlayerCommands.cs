@@ -7,18 +7,18 @@ namespace ScarletMarket.Commands;
 
 [CommandGroup("market")]
 public static class PlayerCommands {
-  [Command("create", "Set up your own shop to start trading")]
-  public static void CreateTrader(ChatCommandContext ctx) {
+  [Command("claim", "Set up your own shop to start trading")]
+  public static void ClaimPlot(ChatCommandContext ctx) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
       ctx.Reply("Player not found.".FormatError());
       return;
     }
 
-    TraderService.CreateTrader(player);
+    TraderService.TryBuyPlot(player);
   }
 
-  [Command("remove", "Delete your shop permanently")]
-  public static void RemoveTrader(ChatCommandContext ctx) {
+  [Command("unclaim", "Delete your shop permanently")]
+  public static void UnclaimPlot(ChatCommandContext ctx) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
       ctx.Reply("Player not found.".FormatError());
       return;
@@ -37,7 +37,7 @@ public static class PlayerCommands {
     var trader = TraderService.GetTrader(player.PlatformId);
 
     if (trader == null) {
-      ctx.Reply("You don't have a shop yet! Use ~.market create~ to get started.".FormatError());
+      ctx.Reply("You don't have a shop yet! Use ~.market claim~ to get started.".FormatError());
       return;
     }
 
@@ -54,7 +54,7 @@ public static class PlayerCommands {
     var trader = TraderService.GetTrader(player.PlatformId);
 
     if (trader == null) {
-      ctx.Reply("You don't have a shop yet! Use ~.market create~ to get started.".FormatError());
+      ctx.Reply("You don't have a shop yet! Use ~.market claim~ to get started.".FormatError());
       return;
     }
 
@@ -78,7 +78,7 @@ public static class PlayerCommands {
     var trader = TraderService.GetTrader(player.PlatformId);
 
     if (trader == null) {
-      ctx.Reply("You don't have a shop yet! Use ~.market create~ to get started.".FormatError());
+      ctx.Reply("You don't have a shop yet! Use ~.market claim~ to get started.".FormatError());
       return;
     }
 

@@ -3,7 +3,6 @@ using ProjectM;
 using ProjectM.Gameplay.Systems;
 using ProjectM.Shared;
 using ScarletCore;
-using ScarletMarket;
 using ScarletMarket.Services;
 using Unity.Collections;
 using Unity.Entities;
@@ -31,9 +30,7 @@ internal static class InteractPatch {
 
       if (plot.IsNull() || !plot.Exists()) continue;
 
-      if (!plot.IdEquals(PLOT_ID)) {
-        continue;
-      }
+      if (!plot.IdEquals(PLOT_ID)) continue;
 
       TraderService.TryBuyPlot(player);
     }

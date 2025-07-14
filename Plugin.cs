@@ -2,8 +2,6 @@
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
-using ProjectM;
-using ScarletCore;
 using ScarletCore.Data;
 using ScarletCore.Events;
 using ScarletCore.Systems;
@@ -33,6 +31,7 @@ public class Plugin : BasePlugin {
     _harmony.PatchAll(System.Reflection.Assembly.GetExecutingAssembly());
 
     Settings = new Settings(MyPluginInfo.PLUGIN_GUID, Instance);
+    LoadSettings();
     Database = new Database(MyPluginInfo.PLUGIN_GUID);
 
     if (GameSystems.Initialized) {
@@ -40,7 +39,6 @@ public class Plugin : BasePlugin {
     } else {
       EventManager.OnInitialize += OnInitialize;
     }
-
     LocalizationService.LoadPrefabNames();
     CommandRegistry.RegisterAll();
   }
@@ -61,21 +59,8 @@ public class Plugin : BasePlugin {
     LoadSettings();
   }
   public static void LoadSettings() {
-    Settings.Section("General")
-      .Add("Enable", true, "Enable or disable the plugin");
+    Settings.Section("Plot Purchase")
+      .Add("PrefabGUID", 0, "The PrefabGUID of the required item to purchase a plot")
+      .Add("Amount", 0, "The amount of the required item to purchase a plot\nIf set to 0, the plot is free");
   }
-
-  /*
-    [CommandGroup("groupname")]
-    public class CommandGroup
-    {
-      [Command("commandname", "Description of the command")]
-      public static void CommandName(CommandContext context)
-      {
-        // Command implementation
-        context.Reply("Command executed successfully!");
-      }
-    }
-  */
-
 }

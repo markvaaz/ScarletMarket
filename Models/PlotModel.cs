@@ -11,11 +11,13 @@ namespace ScarletMarket.Models;
 
 internal class PlotModel {
 
-  public Entity Entity { get; set; }
+  public Entity Entity { get; set; } = Entity.Null;
+  public Entity Inspect { get; private set; } = Entity.Null;
   public float3 Position => Entity.Position();
   public float Radius = PLOT_RADIUS;
   public quaternion Rotation => Entity.Read<Rotation>().Value;
   public TraderModel Trader { get; set; } = null;
+  public GhostTraderModel GhostPlaceholder { get; set; }
   public bool IsVisible => GetCircleRadius() > 0f;
 
   public PlotModel(float3 position) {
@@ -25,17 +27,27 @@ internal class PlotModel {
     }
     Entity = GameSystems.EntityManager.Instantiate(prefab);
     Entity.SetId(PLOT_ID);
+    Inspect = UnitSpawnerService.ImmediateSpawn(Spawnable.Inspect, Position, 0f, 0f, -1f);
+    Inspect.SetId(INSPECT_ID);
+
+    Inspect.AddWith((ref Follower follower) => {
+      follower.Followed._Value = Entity;
+    });
+
     MoveAreaTo(position);
+    GhostPlaceholder = new GhostTraderModel(this);
     SetRadius(0);
     Show();
   }
 
-  public PlotModel(Entity entity) {
+  // For loading existing plot with inspect entity
+  public PlotModel(Entity entity, Entity inspectEntity) {
     if (entity.IsNull() || !entity.Exists()) {
       Log.Error("Cannot create PlotModel: Entity is null or does not exist.");
       return;
     }
     Entity = entity;
+    Inspect = inspectEntity;
     SetRadius(0);
   }
 
@@ -48,7 +60,10 @@ internal class PlotModel {
       Log.Error("Cannot show ArrivalArea: Entity is null.");
       return;
     }
-
+    GhostPlaceholder.Show();
+    if (Inspect != Entity.Null && Inspect.Exists()) {
+      Inspect.SetPosition(Position);
+    }
     PlayAnimation(0f, PLOT_RADIUS, SetRadius);
   }
 
@@ -57,14 +72,26 @@ internal class PlotModel {
       Log.Error("Cannot hide ArrivalArea: Entity is null.");
       return;
     }
-
+    GhostPlaceholder.Hide();
+    if (Inspect != Entity.Null && Inspect.Exists()) {
+      Inspect.SetPosition(Position + new float3(0, COFFIN_HEIGHT, 0));
+    }
     PlayAnimation(PLOT_RADIUS, 0f, SetRadius);
   }
 
   public void Destroy() {
-    if (Entity != Entity.Null) {
+    // Destroy ghost placeholder if it exists
+    GhostPlaceholder?.Destroy();
+    GhostPlaceholder = null;
+
+    if (Entity != Entity.Null && Entity.Exists()) {
       Entity.Destroy();
       Entity = Entity.Null;
+    }
+
+    if (Inspect != Entity.Null && Inspect.Exists()) {
+      Inspect.Destroy();
+      Inspect = Entity.Null;
     }
   }
 
@@ -80,6 +107,7 @@ internal class PlotModel {
     var currentRotation = CalculateCurrentRotation();
     var newRotation = (currentRotation + 1) % 4;
     Entity.Write(new Rotation { Value = quaternion.RotateY(math.radians(-90 * newRotation)) });
+    GhostPlaceholder?.AlignToPlotRotation(Rotation);
   }
 
   private int CalculateCurrentRotation() {

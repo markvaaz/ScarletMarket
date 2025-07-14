@@ -213,83 +213,74 @@ internal static class TraderService {
   }
 
   public static void RegisterOnLoad() {
-    RegisterTraders();
-    RegisterPlots();
-    RegisterGhosts();
+    RegisterOnLoadEntities();
     BindPlotsToTraders();
   }
 
-  public static void RegisterGhosts() {
+  public static void RegisterOnLoadEntities() {
     var query = GameSystems.EntityManager.CreateEntityQuery(
-      ComponentType.ReadOnly<NameableInteractable>(),
-      ComponentType.ReadOnly<Follower>()
-    ).ToEntityArray(Allocator.Temp);
-
-    var ghostStorages = new Dictionary<Entity, Entity>();
-    var ghostTraders = new Dictionary<Entity, Entity>();
-    var ghostCoffins = new Dictionary<Entity, Entity>();
-
-    // Find all ghost entities by their IDs
-    foreach (var entity in query) {
-      if (!entity.Has<NameableInteractable>() || !entity.Has<Follower>()) continue;
-
-      var followed = entity.Read<Follower>().Followed._Value;
-
-      if (entity.IdEquals(GHOST_STORAGE_ID)) {
-        ghostStorages[followed] = entity;
-      } else if (entity.IdEquals(GHOST_TRADER_ID)) {
-        ghostTraders[followed] = entity;
-      } else if (entity.IdEquals(GHOST_COFFIN_ID)) {
-        ghostCoffins[followed] = entity;
-      }
-    }
-
-    // For each plot, check if it has ghost entities and recreate the GhostTraderModel
-    foreach (var plot in Plots) {
-      if (!ghostStorages.TryGetValue(plot.Entity, out var storageEntity) ||
-          !ghostTraders.TryGetValue(plot.Entity, out var traderEntity) ||
-          !ghostCoffins.TryGetValue(plot.Entity, out var coffinEntity)) {
-        // If plot doesn't have all ghost entities, create a new ghost
-        plot.GhostPlaceholder ??= new GhostTraderModel(plot);
-        continue;
-      }
-
-      // Recreate GhostTraderModel from existing entities
-      var ghostTrader = new GhostTraderModel(plot, storageEntity, traderEntity, coffinEntity);
-      plot.GhostPlaceholder = ghostTrader;
-    }
-  }
-
-  public static void RegisterTraders() {
-    var query = GameSystems.EntityManager.CreateEntityQuery(
-      ComponentType.ReadOnly<NameableInteractable>(),
-      ComponentType.ReadOnly<Follower>()
+      ComponentType.ReadOnly<NameableInteractable>()
     ).ToEntityArray(Allocator.Temp);
 
     var traders = new Dictionary<PlayerData, Entity>();
     var storages = new Dictionary<PlayerData, Entity>();
     var stands = new Dictionary<PlayerData, Entity>();
     var coffins = new Dictionary<PlayerData, Entity>();
+    var plots = new Dictionary<Entity, Entity>();
+    var inspects = new Dictionary<Entity, Entity>();
+    var ghostStorages = new Dictionary<Entity, Entity>();
+    var ghostTraders = new Dictionary<Entity, Entity>();
+    var ghostCoffins = new Dictionary<Entity, Entity>();
 
     foreach (var entity in query) {
-      if (!entity.Has<NameableInteractable>() || !entity.Has<Follower>()) continue;
+      if (!entity.Has<NameableInteractable>()) continue;
 
-      var owner = entity.Read<Follower>().Followed._Value;
-      var playerData = owner.GetPlayerData();
+      if (entity.IdEquals(PLOT_ID)) {
+        plots[entity] = entity;
+        continue;
+      }
 
-      if (playerData == null) continue;
+      if (!entity.Has<Follower>()) continue;
+      var followed = entity.Read<Follower>().Followed._Value;
 
-      if (entity.IdEquals(TRADER_ID)) {
-        traders[playerData] = entity;
-      } else if (entity.IdEquals(STORAGE_ID)) {
-        storages[playerData] = entity;
-      } else if (entity.IdEquals(STAND_ID)) {
-        stands[playerData] = entity;
-      } else if (entity.IdEquals(COFFIN_ID)) {
-        coffins[playerData] = entity;
+      if (entity.IdEquals(INSPECT_ID)) {
+        inspects[followed] = entity;
+      } else if (entity.IdEquals(GHOST_STORAGE_ID)) {
+        ghostStorages[followed] = entity;
+      } else if (entity.IdEquals(GHOST_TRADER_ID)) {
+        ghostTraders[followed] = entity;
+      } else if (entity.IdEquals(GHOST_COFFIN_ID)) {
+        ghostCoffins[followed] = entity;
+      } else {
+        var playerData = followed.GetPlayerData();
+        if (playerData == null) continue;
+
+        if (entity.IdEquals(TRADER_ID)) {
+          traders[playerData] = entity;
+        } else if (entity.IdEquals(STORAGE_ID)) {
+          storages[playerData] = entity;
+        } else if (entity.IdEquals(STAND_ID)) {
+          stands[playerData] = entity;
+        } else if (entity.IdEquals(COFFIN_ID)) {
+          coffins[playerData] = entity;
+        }
       }
     }
 
+    RegisterPlotsFromEntities(plots, inspects);
+    RegisterTradersFromEntities(traders, storages, stands, coffins);
+    RegisterGhostsFromEntities(ghostStorages, ghostTraders, ghostCoffins);
+  }
+
+  private static void RegisterPlotsFromEntities(Dictionary<Entity, Entity> plots, Dictionary<Entity, Entity> inspects) {
+    foreach (var plotEntity in plots.Keys) {
+      var inspectEntity = inspects[plotEntity];
+      var plot = new PlotModel(plotEntity, inspectEntity);
+      Plots.Add(plot);
+    }
+  }
+
+  private static void RegisterTradersFromEntities(Dictionary<PlayerData, Entity> traders, Dictionary<PlayerData, Entity> storages, Dictionary<PlayerData, Entity> stands, Dictionary<PlayerData, Entity> coffins) {
     foreach (var kvp in traders) {
       var player = kvp.Key;
       var traderEntity = kvp.Value;
@@ -310,29 +301,17 @@ internal static class TraderService {
     }
   }
 
-  public static void RegisterPlots() {
-    var query = GameSystems.EntityManager.CreateEntityQuery(
-      ComponentType.ReadOnly<NameableInteractable>()
-    ).ToEntityArray(Allocator.Temp);
-
-    var plots = new Dictionary<Entity, Entity>();
-    var inspects = new Dictionary<Entity, Entity>();
-
-    // Find plot and inspect entities
-    foreach (var entity in query) {
-      if (entity.IdEquals(PLOT_ID)) {
-        plots[entity] = entity;
-      } else if (entity.IdEquals(INSPECT_ID)) {
-        var followed = entity.Read<Follower>().Followed._Value;
-        inspects[followed] = entity;
+  private static void RegisterGhostsFromEntities(Dictionary<Entity, Entity> ghostStorages, Dictionary<Entity, Entity> ghostTraders, Dictionary<Entity, Entity> ghostCoffins) {
+    foreach (var plot in Plots) {
+      if (!ghostStorages.TryGetValue(plot.Entity, out var storageEntity) ||
+          !ghostTraders.TryGetValue(plot.Entity, out var traderEntity) ||
+          !ghostCoffins.TryGetValue(plot.Entity, out var coffinEntity)) {
+        plot.GhostPlaceholder ??= new GhostTraderModel(plot);
+        continue;
       }
-    }
 
-    // Create PlotModel instances
-    foreach (var plotEntity in plots.Keys) {
-      var inspectEntity = inspects[plotEntity];
-      var plot = new PlotModel(plotEntity, inspectEntity);
-      Plots.Add(plot);
+      var ghostTrader = new GhostTraderModel(plot, storageEntity, traderEntity, coffinEntity);
+      plot.GhostPlaceholder = ghostTrader;
     }
   }
 
@@ -400,8 +379,11 @@ internal static class TraderService {
 
     foreach (var entity in query) {
       if (!entity.Has<NameableInteractable>()) continue;
-      if (entity.IdEquals(TRADER_ID) || entity.IdEquals(STORAGE_ID) || entity.IdEquals(COFFIN_ID) || entity.IdEquals(STAND_ID) || entity.IdEquals(INSPECT_ID) ||
-          entity.IdEquals(PLOT_ID) || entity.IdEquals(GHOST_TRADER_ID) || entity.IdEquals(GHOST_STORAGE_ID) || entity.IdEquals(GHOST_COFFIN_ID)) {
+      if (
+        entity.IdEquals(TRADER_ID) || entity.IdEquals(STORAGE_ID) || entity.IdEquals(COFFIN_ID) ||
+        entity.IdEquals(STAND_ID) || entity.IdEquals(INSPECT_ID) || entity.IdEquals(PLOT_ID) ||
+        entity.IdEquals(GHOST_TRADER_ID) || entity.IdEquals(GHOST_STORAGE_ID) || entity.IdEquals(GHOST_COFFIN_ID)
+      ) {
         entity.Destroy();
       }
     }

@@ -8,7 +8,7 @@ using ScarletMarket.Services;
 using Unity.Collections;
 using Unity.Entities;
 
-namespace ScarletQuests.Patches;
+namespace ScarletMarket.Patches;
 
 [HarmonyPatch(typeof(InteractValidateAndStopSystemServer), nameof(InteractValidateAndStopSystemServer.OnUpdate))]
 internal static class InteractPatch {

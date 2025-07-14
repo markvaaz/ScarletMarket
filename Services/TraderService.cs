@@ -41,7 +41,7 @@ internal static class TraderService {
     RegisterOnLoad();
   }
 
-  public static void CreateTrader(PlayerData player) {
+  public static void TryBuyPlot(PlayerData player) {
     if (TraderById.ContainsKey(player.PlatformId)) {
       MessageService.Send(player, "You already have a shop!".FormatError());
       return;
@@ -52,6 +52,10 @@ internal static class TraderService {
       return;
     }
 
+    CreateTrader(player, plot);
+  }
+
+  public static void CreateTrader(PlayerData player, PlotModel plot) {
     if (!IsPlotEmpty(plot)) {
       MessageService.Send(player, "This plot already has a shop!".FormatError());
       return;
@@ -72,8 +76,7 @@ internal static class TraderService {
     StandEntities[trader.Trader] = trader;
     TraderById[player.PlatformId] = trader;
 
-    MessageService.Send(player, "Your shop has been created! You can now add items to sell.".FormatSuccess());
-    MessageService.Send(player, "Put your first item in the first slot to get started.".FormatSuccess());
+    MessageService.Send(player, "~Your shop has been created!~ You can now add items to sell.".FormatSuccess());
   }
 
   public static bool TryCreatePlot(PlayerData player, out PlotModel plot) {
@@ -212,7 +215,49 @@ internal static class TraderService {
   public static void RegisterOnLoad() {
     RegisterTraders();
     RegisterPlots();
+    RegisterGhosts();
     BindPlotsToTraders();
+  }
+
+  public static void RegisterGhosts() {
+    var query = GameSystems.EntityManager.CreateEntityQuery(
+      ComponentType.ReadOnly<NameableInteractable>(),
+      ComponentType.ReadOnly<Follower>()
+    ).ToEntityArray(Allocator.Temp);
+
+    var ghostStorages = new Dictionary<Entity, Entity>();
+    var ghostTraders = new Dictionary<Entity, Entity>();
+    var ghostCoffins = new Dictionary<Entity, Entity>();
+
+    // Find all ghost entities by their IDs
+    foreach (var entity in query) {
+      if (!entity.Has<NameableInteractable>() || !entity.Has<Follower>()) continue;
+
+      var followed = entity.Read<Follower>().Followed._Value;
+
+      if (entity.IdEquals(GHOST_STORAGE_ID)) {
+        ghostStorages[followed] = entity;
+      } else if (entity.IdEquals(GHOST_TRADER_ID)) {
+        ghostTraders[followed] = entity;
+      } else if (entity.IdEquals(GHOST_COFFIN_ID)) {
+        ghostCoffins[followed] = entity;
+      }
+    }
+
+    // For each plot, check if it has ghost entities and recreate the GhostTraderModel
+    foreach (var plot in Plots) {
+      if (!ghostStorages.TryGetValue(plot.Entity, out var storageEntity) ||
+          !ghostTraders.TryGetValue(plot.Entity, out var traderEntity) ||
+          !ghostCoffins.TryGetValue(plot.Entity, out var coffinEntity)) {
+        // If plot doesn't have all ghost entities, create a new ghost
+        plot.GhostPlaceholder ??= new GhostTraderModel(plot);
+        continue;
+      }
+
+      // Recreate GhostTraderModel from existing entities
+      var ghostTrader = new GhostTraderModel(plot, storageEntity, traderEntity, coffinEntity);
+      plot.GhostPlaceholder = ghostTrader;
+    }
   }
 
   public static void RegisterTraders() {
@@ -267,13 +312,27 @@ internal static class TraderService {
 
   public static void RegisterPlots() {
     var query = GameSystems.EntityManager.CreateEntityQuery(
-      ComponentType.ReadOnly<NameableInteractable>(),
-      ComponentType.ReadOnly<DuelInstance>()
+      ComponentType.ReadOnly<NameableInteractable>()
     ).ToEntityArray(Allocator.Temp);
 
+    var plots = new Dictionary<Entity, Entity>();
+    var inspects = new Dictionary<Entity, Entity>();
+
+    // Find plot and inspect entities
     foreach (var entity in query) {
-      if (!entity.Has<NameableInteractable>() || !entity.Has<DuelInstance>() || !entity.IdEquals(PLOT_ID)) continue;
-      Plots.Add(new PlotModel(entity));
+      if (entity.IdEquals(PLOT_ID)) {
+        plots[entity] = entity;
+      } else if (entity.IdEquals(INSPECT_ID)) {
+        var followed = entity.Read<Follower>().Followed._Value;
+        inspects[followed] = entity;
+      }
+    }
+
+    // Create PlotModel instances
+    foreach (var plotEntity in plots.Keys) {
+      var inspectEntity = inspects[plotEntity];
+      var plot = new PlotModel(plotEntity, inspectEntity);
+      Plots.Add(plot);
     }
   }
 
@@ -341,7 +400,8 @@ internal static class TraderService {
 
     foreach (var entity in query) {
       if (!entity.Has<NameableInteractable>()) continue;
-      if (entity.IdEquals(TRADER_ID) || entity.IdEquals(STORAGE_ID) || entity.IdEquals(COFFIN_ID) || entity.IdEquals(STAND_ID) || entity.IdEquals(PLOT_ID)) {
+      if (entity.IdEquals(TRADER_ID) || entity.IdEquals(STORAGE_ID) || entity.IdEquals(COFFIN_ID) || entity.IdEquals(STAND_ID) || entity.IdEquals(INSPECT_ID) ||
+          entity.IdEquals(PLOT_ID) || entity.IdEquals(GHOST_TRADER_ID) || entity.IdEquals(GHOST_STORAGE_ID) || entity.IdEquals(GHOST_COFFIN_ID)) {
         entity.Destroy();
       }
     }

@@ -168,8 +168,6 @@ internal class TraderModel {
       return;
     }
 
-    RemoveCostWithoutItem();
-
     var hasAnyValidTradePairs = HasAnyValidTradePairs();
     var hasItemWithNoCost = HasItemWithNoCost();
 
@@ -179,15 +177,15 @@ internal class TraderModel {
       return;
     }
 
-    if (!hasAnyValidTradePairs) {
-      SendErrorSCT(CANNOT_DO_MESSAGE);
-      SendMessage("Add an item to your shop first!");
-      return;
-    }
-
     if (hasItemWithNoCost) {
       SendErrorSCT(CANNOT_DO_MESSAGE);
       SendMessage(Owner, "Set a price for your item before opening the shop.");
+      return;
+    }
+
+    if (!hasAnyValidTradePairs) {
+      SendErrorSCT(CANNOT_DO_MESSAGE);
+      SendMessage("Add an item to your shop first!");
       return;
     }
   }
@@ -421,6 +419,20 @@ internal class TraderModel {
 
   public void MakeStandPrivate() {
     Stand.SetTeam(Owner.CharacterEntity);
+  }
+
+  public void DisableAllInteractions() {
+    Stand.With((ref Interactable interactable) => {
+      interactable.Disabled = true;
+    });
+
+    Trader.With((ref Interactable interactable) => {
+      interactable.Disabled = true;
+    });
+
+    StorageChest.With((ref Interactable interactable) => {
+      interactable.Disabled = true;
+    });
   }
 
   public void SetTraderName(string name) {

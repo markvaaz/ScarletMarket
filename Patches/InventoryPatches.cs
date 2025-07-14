@@ -8,10 +8,6 @@ using ScarletCore.Systems;
 using ScarletCore.Utils;
 using ScarletMarket.Services;
 using ScarletMarket.Models;
-using ScarletCore.Services;
-using ProjectM.Scripting;
-using ProjectM.Contest;
-using ProjectM.UI;
 
 namespace ScarletMarket.Patches;
 

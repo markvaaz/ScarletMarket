@@ -21,6 +21,7 @@ internal static class TraderService {
   public static readonly Dictionary<ulong, TraderModel> TraderById = [];
   public static readonly List<PlotModel> Plots = [];
   private static Entity _defaultStandEntity;
+  private static Settings Settings => Plugin.Settings;
   public static Entity DefaultStandEntity {
     get {
       if (_defaultStandEntity == Entity.Null) {
@@ -36,7 +37,7 @@ internal static class TraderService {
   }
 
   public static void Initialize() {
-    SetContainerSize(Spawnable.StorageChest, 35);
+    SetContainerSize(Spawnable.StorageChest, 63);
     SetContainerSize(Spawnable.StandChest, 35);
     RegisterOnLoad();
   }
@@ -49,6 +50,15 @@ internal static class TraderService {
 
     if (!TryGetPlot(player.Position, out var plot)) {
       MessageService.Send(player, "You need to be inside a plot to create a shop.".FormatError());
+      return;
+    }
+
+    var requiredPrefabGUID = new PrefabGUID(Settings.Get<int>("PrefabGUID"));
+    var requiredAmount = Settings.Get<int>("Amount");
+
+    if (requiredPrefabGUID.GuidHash != 0 && requiredAmount > 0 && !InventoryService.HasAmount(player.CharacterEntity, requiredPrefabGUID, requiredAmount)) {
+      var item = ItemSearchService.FindByPrefabGUID(requiredPrefabGUID);
+      MessageService.Send(player, $"You don't have enough ~{item.Value.Name}~ to claim this plot.".FormatError());
       return;
     }
 

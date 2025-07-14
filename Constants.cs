@@ -31,7 +31,7 @@ internal static class Constants {
   public const int COFFIN_HEIGHT = 223;
   public const float PLOT_RADIUS = 2.1f;
   public static readonly PrefabGUID NEUTRAL_FACTION = new(-1430861195);
-  public static readonly PrefabGUID BLOCK_SLOT_ITEM = new(-696770536);
+  public static readonly PrefabGUID BLOCK_SLOT_ITEM = new(1488205677); // -696770536
   public static readonly PrefabGUID SCT_PREFAB = new(-1404311249);
   public static readonly PrefabGUID INTERACT_INSPECT = new(222103866);
   public static NativeParallelHashMap<PrefabGUID, Entity> PrefabGuidToEntityMap = GameSystems.PrefabCollectionSystem._PrefabGuidToEntityMap;

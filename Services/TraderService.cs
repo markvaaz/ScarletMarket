@@ -9,7 +9,6 @@ using ScarletMarket.Models;
 using Stunlock.Core;
 using Unity.Collections;
 using Unity.Entities;
-using Unity.Entities.UniversalDelegates;
 using Unity.Mathematics;
 
 namespace ScarletMarket.Services;
@@ -100,7 +99,8 @@ internal static class TraderService {
     }
 
     // 0.5f grid alignment offset by 0.25f
-    var position = new float3(math.round(player.Position.x * 2) / 2f + 0.25f, player.Position.y, math.round(player.Position.z * 2) / 2f + 0.25f);
+    var offset = 0f;
+    var position = new float3(math.round(player.Position.x * 2) / 2f + offset, player.Position.y, math.round(player.Position.z * 2) / 2f + offset);
 
     Log.Info(position);
 

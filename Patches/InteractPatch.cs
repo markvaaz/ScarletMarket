@@ -26,11 +26,12 @@ internal static class InteractPatch {
       if (player == null) continue;
 
       var inspect = playerEntity.Read<Interactor>().Target;
+
+      if (!inspect.Has<Follower>()) continue;
+
       var plot = inspect.Read<Follower>().Followed._Value;
 
-      if (plot.IsNull() || !plot.Exists()) continue;
-
-      if (!plot.IdEquals(PLOT_ID)) continue;
+      if (plot.IsNull() || !plot.Exists() || !plot.IdEquals(PLOT_ID)) continue;
 
       TraderService.TryBuyPlot(player);
     }

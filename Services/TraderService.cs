@@ -71,13 +71,12 @@ internal static class TraderService {
       return;
     }
 
-    var trader = new TraderModel(player, plot.Position);
+    var trader = new TraderModel(player, plot);
 
     plot.Trader = trader;
-    trader.Plot = plot;
 
     // Align trader with plot rotation
-    trader.AlignToPlotRotation(plot.Rotation);
+    trader.AlignToPlotRotation();
 
     plot.Hide();
 
@@ -100,7 +99,12 @@ internal static class TraderService {
       return false;
     }
 
-    plot = new PlotModel(player.Position);
+    // 0.5f grid alignment offset by 0.25f
+    var position = new float3(math.round(player.Position.x * 2) / 2f + 0.25f, player.Position.y, math.round(player.Position.z * 2) / 2f + 0.25f);
+
+    Log.Info(position);
+
+    plot = new PlotModel(position);
     Plots.Add(plot);
     return true;
   }
@@ -228,9 +232,11 @@ internal static class TraderService {
   }
 
   public static void RegisterOnLoadEntities() {
-    var query = GameSystems.EntityManager.CreateEntityQuery(
-      ComponentType.ReadOnly<NameableInteractable>()
-    ).ToEntityArray(Allocator.Temp);
+    EntityQueryBuilder queryBuilder = new(Allocator.Temp);
+    queryBuilder.AddAll(ComponentType.ReadOnly<NameableInteractable>());
+    queryBuilder.WithOptions(EntityQueryOptions.IncludeDisabled);
+
+    var query = GameSystems.EntityManager.CreateEntityQuery(ref queryBuilder).ToEntityArray(Allocator.Temp);
 
     var traders = new Dictionary<PlayerData, Entity>();
     var storages = new Dictionary<PlayerData, Entity>();
@@ -331,8 +337,10 @@ internal static class TraderService {
         plot.Show();
         continue;
       }
+
       trader.Plot = plot;
       plot.Trader = trader;
+      trader.AlignToPlotRotation();
       plot.Hide();
     }
   }

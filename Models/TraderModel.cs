@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ProjectM;
+using ProjectM.Gameplay.Clan;
 using ProjectM.Network;
 using ProjectM.Tiles;
 using ScarletCore;
@@ -26,7 +27,7 @@ internal class TraderModel {
   public Entity DefaultStandEntity => TraderService.DefaultStandEntity;
   public PlayerData Owner { get; private set; }
   public PrefabGUID State { get; private set; }
-  public float3 Position { get; private set; }
+  public float3 Position => Plot?.Position ?? new float3(0, 0, 0);
   public PlotModel Plot { get; set; } = null;
   public List<int> BlockedSlots = [];
   private readonly PrefabGUID[] ServantPermaBuffs = [
@@ -36,13 +37,13 @@ internal class TraderModel {
   ];
 
   // For creating new ones
-  public TraderModel(PlayerData player, float3 position) {
+  public TraderModel(PlayerData player, PlotModel plot) {
     Owner = player;
+    Plot = plot;
     Name = $"{Owner.Name}'s Shop";
-    Position = position;
-    StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + new float3(0, 0, -0.65f), 0f, 0f, -1f, Owner.UserEntity);
-    Stand = UnitSpawnerService.ImmediateSpawn(Spawnable.StandChest, Position + new float3(0, 0, 0.65f), 0f, 0f, -1f);
-    Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + new float3(0, 0, 0.65f), 0f, 0f, -1f, Owner.UserEntity);
+    StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + new float3(0, 0, -1f), 0f, 0f, -1f, Owner.UserEntity);
+    Stand = UnitSpawnerService.ImmediateSpawn(Spawnable.StandChest, Position + new float3(0, 0, 1.5f), 0f, 0f, -1f);
+    Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + new float3(0, 0, 1.5f), 0f, 0f, -1f, Owner.UserEntity);
     Coffin = UnitSpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f, Owner.UserEntity);
     SetState(TraderState.WaitingForItem);
     SetupCoffin();
@@ -50,6 +51,7 @@ internal class TraderModel {
     SetupTrader();
     SetupStand();
     BindCoffinServant();
+    AlignToPlotRotation();
   }
 
   // For loading existing ones
@@ -60,7 +62,6 @@ internal class TraderModel {
     Stand = stand;
     Trader = trader;
     Coffin = coffin;
-    Position = GetCenterPosition();
     SetState(GetCurrentState());
   }
 
@@ -210,20 +211,20 @@ internal class TraderModel {
   }
 
   public void SendMessage(PlayerData playerData, string messageText) {
-    var toUser = playerData.User.Index;
+    var user = playerData.User;
     var message = new FixedString512Bytes(messageText);
     var fromUser = Trader.Read<NetworkId>();
     var fromCharacter = Trader.Read<NetworkId>();
 
-    ServerChatUtils.SendChatMessage(
-      GameSystems.EntityManager,
-      ref toUser,
-      ref message,
-      ref fromUser,
-      ref fromCharacter,
-      ServerChatMessageType.Local,
-      DateTime.UtcNow.Ticks
-    );
+    ChatMessageServerEvent eventData = new() {
+      MessageText = message,
+      TimeUTC = DateTime.UtcNow.Ticks,
+      FromUser = fromUser,
+      FromCharacter = fromCharacter,
+      MessageType = ServerChatMessageType.Local
+    };
+
+    NetworkEvents.SendEvent(GameSystems.EntityManager, eventData, ref user);
   }
 
   public void RemoveCostItem(int slot) {
@@ -421,20 +422,6 @@ internal class TraderModel {
     Stand.SetTeam(Owner.CharacterEntity);
   }
 
-  public void DisableAllInteractions() {
-    Stand.With((ref Interactable interactable) => {
-      interactable.Disabled = true;
-    });
-
-    Trader.With((ref Interactable interactable) => {
-      interactable.Disabled = true;
-    });
-
-    StorageChest.With((ref Interactable interactable) => {
-      interactable.Disabled = true;
-    });
-  }
-
   public void SetTraderName(string name) {
     Name = name;
     Coffin.AddWith((ref ServantCoffinstation coffinStation) => {
@@ -485,6 +472,7 @@ internal class TraderModel {
       editableTileModel.CanMoveAfterBuild = false;
       editableTileModel.CanRotateAfterBuild = false;
     });
+
     ActionScheduler.DelayedFrames((end) => {
       if (Stand.IsNull() || !Stand.Exists()) {
         end();
@@ -562,145 +550,143 @@ internal class TraderModel {
     );
   }
 
-  public void RotateTrader() {
-    RotateTile(StorageChest, Position);
-    RotateTile(Stand, Position);
+  public void AlignToPlotRotation() {
+    var center = Plot.Position;
+    var plotRotation = GetCurrentRotation();
 
-    RotateTraderUnit(Position);
+    // Definir quaternions para cada direção cardeal
+    var quaternions = new quaternion[] {
+      quaternion.identity,                          // Norte (0°)
+      quaternion.RotateY(math.radians(90f)),        // Leste (90°)
+      quaternion.RotateY(math.radians(180f)),       // Sul (180°)
+      quaternion.RotateY(math.radians(270f))        // Oeste (270°)
+    };
 
-    UpdateTraderLookDirection();
-  }
-
-  public void AlignToPlotRotation(quaternion rotation) {
-    var forward = math.mul(rotation, new float3(0, 0, 1));
+    // Determinar qual direção cardeal baseado no forward do plot
+    var forward = math.mul(plotRotation, new float3(0, 0, 1));
     var threshold = 0.4f;
 
-    int plotRotationStep = 0;
-    if (forward.z > threshold) plotRotationStep = 0;
-    else if (forward.x < -threshold) plotRotationStep = 1;
-    else if (forward.z < -threshold) plotRotationStep = 2;
-    else if (forward.x > threshold) plotRotationStep = 3;
+    int rotationStep = 0;
+    if (forward.z > threshold) rotationStep = 0;       // Norte
+    else if (forward.x > threshold) rotationStep = 1;  // Leste
+    else if (forward.z < -threshold) rotationStep = 2; // Sul
+    else if (forward.x < -threshold) rotationStep = 3; // Oeste
 
-    var currentRotation = CalculateCurrentRotation();
-    var rotationsNeeded = (plotRotationStep - currentRotation + 4) % 4;
+    var targetRotation = quaternions[rotationStep];
 
-    for (int i = 0; i < rotationsNeeded; i++) {
-      RotateTrader();
-    }
-  }
+    // Posições relativas ao centro (antes da rotação)
+    var storageOffset = new float3(0, 0, -1f);   // Atrás do centro
+    var standOffset = new float3(0, 0, 1.5f);    // Na frente do centro
+    var traderOffset = new float3(0, 0, 1.5f);   // Na frente do centro
 
-  private void RotateTile(Entity tileEntity, float3 centerPoint) {
-    if (tileEntity.IsNull() || !tileEntity.Exists()) return;
+    // Aplicar rotação orbital às posições
+    var rotatedStoragePos = center + math.mul(targetRotation, storageOffset);
+    var rotatedStandPos = center + math.mul(targetRotation, standOffset);
+    var rotatedTraderPos = center + math.mul(targetRotation, traderOffset);
 
-    var currentPos = tileEntity.Position();
-    var relativePos = currentPos - centerPoint;
-
-    var rotatedRelativePos = new float3(
-      -relativePos.z,
-      relativePos.y,
-      relativePos.x
-    );
-
-    var newPos = centerPoint + rotatedRelativePos;
-
-    tileEntity.SetPosition(newPos);
-
-    if (tileEntity.Has<TilePosition>()) {
-      var currentRotation = CalculateCurrentRotation();
-      var tilePos = tileEntity.Read<TilePosition>();
-      tilePos.TileRotation = (TileRotation)currentRotation;
-      tileEntity.Write(tilePos);
-
-      if (tileEntity.Has<StaticTransformCompatible>()) {
-        var stc = tileEntity.Read<StaticTransformCompatible>();
-        stc.NonStaticTransform_Rotation = tilePos.TileRotation;
-        tileEntity.Write(stc);
-      }
-
-      tileEntity.Write(new Rotation { Value = quaternion.RotateY(math.radians(-90 * currentRotation)) });
-    }
-  }
-
-  private void RotateTraderUnit(float3 centerPoint) {
-    if (Trader.IsNull() || !Trader.Exists()) return;
-
-    var currentPos = Trader.Position();
-    var relativePos = currentPos - centerPoint;
-
-    var rotatedRelativePos = new float3(
-      -relativePos.z,
-      relativePos.y,
-      relativePos.x
-    );
-
-    var newPos = centerPoint + rotatedRelativePos;
-
-    Trader.SetPosition(newPos);
-
-    var currentRotation = CalculateCurrentRotation();
-    var rotation = quaternion.RotateY(math.radians(-90 * currentRotation));
-    Trader.Write(new Rotation { Value = rotation });
-  }
-
-  private void UpdateTraderLookDirection() {
-    if (Trader.IsNull() || !Trader.Exists()) return;
-
-    var traderPos = Trader.Position();
-    var currentRotation = CalculateCurrentRotation();
-
-    var lookOffset = new float3(0, 0, 1f);
-
-    switch (currentRotation) {
-      case 0:
-        lookOffset = new float3(0, 0, 1f);
-        break;
-      case 1:
-        lookOffset = new float3(-1f, 0, 0);
-        break;
-      case 2:
-        lookOffset = new float3(0, 0, -1f);
-        break;
-      case 3:
-        lookOffset = new float3(1f, 0, 0);
-        break;
+    // Mover e rotacionar StorageChest (tile)
+    if (StorageChest.Exists()) {
+      StorageChest.SetPosition(rotatedStoragePos);
+      RotateTile(StorageChest, rotationStep);
     }
 
-    var lookAtPosition = traderPos + lookOffset;
+    // Mover e rotacionar Stand (tile)
+    if (Stand.Exists()) {
+      Stand.SetPosition(rotatedStandPos);
+      RotateTile(Stand, rotationStep);
+    }
 
-    if (Trader.Has<EntityInput>()) {
-      Trader.With((ref EntityInput lookAtTarget) => {
-        lookAtTarget.SetAllAimPositions(lookAtPosition);
+    // Mover e rotacionar Trader (unidade)
+    if (Trader.Exists()) {
+      Trader.SetPosition(rotatedTraderPos);
+      // Fazer o trader "olhar" para a direção cardeal
+      var lookAtDirection = math.mul(targetRotation, new float3(0, 0, 1));
+      var lookAtTarget = rotatedTraderPos + lookAtDirection;
+
+      Trader.With((ref EntityInput lookAtInput) => {
+        lookAtInput.SetAllAimPositions(lookAtTarget);
       });
     }
   }
 
-  private int CalculateCurrentRotation() {
-    if (StorageChest.IsNull() || !StorageChest.Exists()) return 0;
+  private void RotateTile(Entity tileEntity, int rotationStep) {
+    // rotationStep: 0=Norte, 1=Leste, 2=Sul, 3=Oeste
 
-    var centerPos = Position;
-    var chestPos = StorageChest.Position();
-    var relativePos = chestPos - centerPos;
+    // Enum values baseado na análise dos dados
+    var tileRotations = new[] {
+      TileRotation.None,           // Norte (0°)
+      TileRotation.Clockwise_90,   // Leste (90°)
+      TileRotation.Clockwise_180,  // Sul (180°)
+      TileRotation.Clockwise_270   // Oeste (270°)
+    };
 
-    var threshold = 0.4f;
+    // Quaternions para cada direção
+    var quaternions = new quaternion[] {
+      quaternion.identity,                          // Norte (0°)
+      quaternion.RotateY(math.radians(90f)),        // Leste (90°)
+      quaternion.RotateY(math.radians(180f)),       // Sul (180°)
+      quaternion.RotateY(math.radians(270f))        // Oeste (270°)
+    };
 
-    if (relativePos.z < -threshold) return 0;
-    if (relativePos.x > threshold) return 1;
-    if (relativePos.z > threshold) return 2;
-    if (relativePos.x < -threshold) return 3;
+    var tileRotation = tileRotations[rotationStep];
+    var newRotation = quaternions[rotationStep];
+    var tilePosition = tileEntity.Read<TilePosition>();
 
-    return 0;
+    // 1. Atualizar TilePosition
+
+    tileEntity.With((ref TilePosition tilePos) => {
+      tilePos.TileRotation = tileRotation;
+    });
+
+
+    // 2. Atualizar TileModelSpatialData
+
+    tileEntity.With((ref TileModelSpatialData spatialData) => {
+      spatialData.LastTilePosition = tilePosition;
+    });
+
+
+    // 3. Atualizar StaticTransformCompatible
+
+    tileEntity.With((ref StaticTransformCompatible compatible) => {
+      compatible.NonStaticTransform_Rotation = tileRotation;
+    });
+
+
+    // 4. Atualizar Rotation
+
+    tileEntity.Write(new Rotation { Value = newRotation });
+
+
+    // 5. Atualizar LocalTransform
+
+    tileEntity.With((ref LocalTransform localTransform) => {
+      localTransform.Rotation = newRotation;
+    });
+
+
+    // 6. Atualizar LocalToWorld
+
+    tileEntity.With((ref LocalToWorld localToWorld) => {
+      // Calcular Right e Forward baseados na rotação
+      var right = math.mul(newRotation, new float3(1f, 0f, 0f));
+      var forward = math.mul(newRotation, new float3(0f, 0f, 1f));
+      var up = new float3(0f, 1f, 0f);  // Up sempre para cima
+
+      // Obter posição atual
+      var currentPosition = localToWorld.Position;
+
+      // Criar matrix de transformação no formato correto
+      localToWorld.Value = new float4x4(
+        new float4(right.x, up.x, forward.x, currentPosition.x),
+        new float4(right.y, up.y, forward.y, currentPosition.y),
+        new float4(right.z, up.z, forward.z, currentPosition.z),
+        new float4(0f, 0f, 0f, 1f)
+      );
+    });
   }
 
-  private float3 GetCenterPosition() {
-    if (Trader.IsNull() || !Trader.Exists() || StorageChest.IsNull() || !StorageChest.Exists()) {
-      return Position;
-    }
-
-    var traderPos = Trader.Position();
-    var chestPos = StorageChest.Position();
-
-    var centerPos = (traderPos + chestPos) / 2f;
-
-    return centerPos;
+  private quaternion GetCurrentRotation() {
+    return Plot.Rotation;
   }
 }

@@ -35,10 +35,12 @@ public static class AdminCommands {
       return;
     }
 
-    if (!TraderService.TryGetTraderInPlot(plot, out var trader)) {
+    if (plot.Trader == null) {
       ctx.Reply("No shop found in this plot.".FormatError());
       return;
     }
+
+    var trader = plot.Trader;
 
     trader.Stand.SetTeam(player.CharacterEntity);
     trader.StorageChest.SetTeam(player.CharacterEntity);
@@ -58,10 +60,12 @@ public static class AdminCommands {
       return;
     }
 
-    if (!TraderService.TryGetTraderInPlot(plot, out var trader)) {
+    if (plot.Trader == null) {
       ctx.Reply("No shop found in this plot.".FormatError());
       return;
     }
+
+    var trader = plot.Trader;
 
     if (trader.State == TraderState.Ready) {
       trader.Stand.SetTeam(TraderService.DefaultStandEntity);
@@ -87,15 +91,19 @@ public static class AdminCommands {
       return;
     }
 
-    if (!TraderService.TryGetTraderInPlot(plot, out var trader)) {
+    if (plot.Trader == null) {
       ctx.Reply("No shop found in this plot.".FormatError());
       return;
     }
+
+    var trader = plot.Trader;
 
     if (!trader.IsEmpty()) {
       ctx.Reply("Shop or storage isn't empty. Use ~.market forceremove trader~ to remove anyway.".FormatError());
       return;
     }
+
+    TraderService.ForceRemoveTrader(trader.Owner);
 
     ctx.Reply($"Shop {trader.Name} has been removed from the plot.".FormatSuccess());
   }
@@ -155,7 +163,7 @@ public static class AdminCommands {
       return;
     }
 
-    TraderService.ForceRemoveTrader(player);
+    TraderService.ForceRemoveTrader(trader.Owner);
     ctx.Reply($"Shop {trader.Name} has been forcefully removed from the plot.".FormatSuccess());
   }
 
@@ -173,8 +181,8 @@ public static class AdminCommands {
 
     plot.Rotate();
 
-    if (TraderService.TryGetTraderInPlot(plot, out var trader)) {
-      trader.AlignToPlotRotation(plot.Rotation);
+    if (plot.Trader != null) {
+      plot.Trader.AlignToPlotRotation();
     }
 
     ctx.Reply($"Plot rotated to {plot.GetCurrentRotationDegrees()} degrees.".FormatSuccess());

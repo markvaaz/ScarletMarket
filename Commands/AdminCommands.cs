@@ -181,10 +181,6 @@ public static class AdminCommands {
 
     plot.Rotate();
 
-    if (plot.Trader != null) {
-      plot.Trader.AlignToPlotRotation();
-    }
-
     ctx.Reply($"Plot rotated to {plot.GetCurrentRotationDegrees()} degrees.".FormatSuccess());
   }
 

@@ -27,7 +27,7 @@ internal class PlotModel {
     }
     Entity = GameSystems.EntityManager.Instantiate(prefab);
     Entity.SetId(PLOT_ID);
-    Inspect = UnitSpawnerService.ImmediateSpawn(Spawnable.Inspect, Position, 0f, 0f, -1f);
+    Inspect = UnitSpawnerService.ImmediateSpawn(Spawnable.Inspect, position, 0f, 0f, -1f);
     Inspect.SetId(INSPECT_ID);
 
     Inspect.AddWith((ref Follower follower) => {
@@ -35,6 +35,8 @@ internal class PlotModel {
     });
 
     MoveAreaTo(position);
+    // Force Entity rotation to point north
+    Entity.Write(new Rotation { Value = quaternion.identity });
     GhostPlaceholder = new GhostTraderModel(this);
     SetRadius(0);
     Show();
@@ -107,7 +109,8 @@ internal class PlotModel {
     var currentRotation = CalculateCurrentRotation();
     var newRotation = (currentRotation + 1) % 4;
     Entity.Write(new Rotation { Value = quaternion.RotateY(math.radians(-90 * newRotation)) });
-    GhostPlaceholder?.AlignToPlotRotation(Rotation);
+    GhostPlaceholder?.AlignToPlotRotation();
+    Trader?.AlignToPlotRotation();
   }
 
   private int CalculateCurrentRotation() {

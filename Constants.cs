@@ -29,7 +29,7 @@ internal static class Constants {
   public const string OPEN_MESSAGE = "4ab8d098-2c0c-4719-bf0f-852522d2b424";
   public const string CLOSE_MESSAGE = "9b97e97d-7d95-4900-af81-1f8457c25182";
   public const int COFFIN_HEIGHT = 223;
-  public const float PLOT_RADIUS = 2.1f;
+  public const float PLOT_RADIUS = 2.5f;
   public static readonly PrefabGUID NEUTRAL_FACTION = new(-1430861195);
   public static readonly PrefabGUID BLOCK_SLOT_ITEM = new(1488205677); // -696770536
   public static readonly PrefabGUID SCT_PREFAB = new(-1404311249);

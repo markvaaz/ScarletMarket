@@ -2,7 +2,6 @@ using ProjectM;
 using ProjectM.Tiles;
 using ScarletCore;
 using ScarletCore.Services;
-using ScarletCore.Utils;
 using Stunlock.Core;
 using Unity.Collections;
 using Unity.Entities;
@@ -17,6 +16,9 @@ internal class GhostTraderModel {
   public Entity Coffin { get; private set; }
   public float3 Position { get; private set; }
   public PlotModel Plot { get; set; } = null;
+  public static float3 StorageOffset => TraderModel.StorageOffset;
+  public static float3 TraderAndStandOffset => TraderModel.TraderAndStandOffset;
+  public static float3 TraderLookAtOffset => TraderModel.TraderLookAtOffset;
   public string Name = "Empty Plot";
 
   private readonly PrefabGUID[] ServantPermaBuffs = [
@@ -28,17 +30,17 @@ internal class GhostTraderModel {
   public GhostTraderModel(PlotModel plot) {
     Plot = plot;
     Position = plot.Position;
-    StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + new float3(0, 0, -1f), 0f, 0f, -1f);
-    Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + new float3(0, 0, 1.5f), 0f, 0f, -1f);
+    StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f);
+    Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f);
     Coffin = UnitSpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f);
 
     SetupGhostCoffin();
     SetupGhostStorageChest();
     SetupGhostTrader();
     BindCoffinServant();
+    AlignToPlotRotation();
   }
 
-  // For loading existing ghost entities from save
   public GhostTraderModel(PlotModel plot, Entity storageChest, Entity trader, Entity coffin) {
     Plot = plot;
     Position = plot.Position;
@@ -124,7 +126,7 @@ internal class GhostTraderModel {
     Attach(Trader);
 
     Trader.With((ref EntityInput lookAtTarget) => {
-      lookAtTarget.SetAllAimPositions(Position + new float3(0, 0, 1f));
+      lookAtTarget.SetAllAimPositions(Position + TraderLookAtOffset);
     });
 
     Trader.With((ref AggroConsumer aggroConsumer) => {
@@ -171,46 +173,33 @@ internal class GhostTraderModel {
     var center = Plot.Position;
     var plotRotation = Plot.Rotation;
 
-    // Definir quaternions para cada direção cardeal
     var quaternions = new quaternion[] {
-      quaternion.identity,                          // Norte (0°)
-      quaternion.RotateY(math.radians(90f)),        // Leste (90°)
-      quaternion.RotateY(math.radians(180f)),       // Sul (180°)
-      quaternion.RotateY(math.radians(270f))        // Oeste (270°)
+      quaternion.identity,
+      quaternion.RotateY(math.radians(90f)),
+      quaternion.RotateY(math.radians(180f)),
+      quaternion.RotateY(math.radians(270f))
     };
 
-    // Determinar qual direção cardeal baseado no forward do plot
     var forward = math.mul(plotRotation, new float3(0, 0, 1));
     var threshold = 0.4f;
 
     int rotationStep = 0;
-    if (forward.z > threshold) rotationStep = 0;       // Norte
-    else if (forward.x > threshold) rotationStep = 1;  // Leste
-    else if (forward.z < -threshold) rotationStep = 2; // Sul
-    else if (forward.x < -threshold) rotationStep = 3; // Oeste
+    if (forward.z > threshold) rotationStep = 0;
+    else if (forward.x > threshold) rotationStep = 1;
+    else if (forward.z < -threshold) rotationStep = 2;
+    else if (forward.x < -threshold) rotationStep = 3;
 
     var targetRotation = quaternions[rotationStep];
+    var rotatedStoragePos = center + math.mul(targetRotation, StorageOffset);
+    var rotatedTraderPos = center + math.mul(targetRotation, TraderAndStandOffset);
 
-    // Posições relativas ao centro (antes da rotação)
-    var storageOffset = new float3(0, 0, -1f);   // Atrás do centro
-    var standOffset = new float3(0, 0, 1.5f);    // Na frente do centro
-    var traderOffset = new float3(0, 0, 1.5f);   // Na frente do centro
-
-    // Aplicar rotação orbital às posições
-    var rotatedStoragePos = center + math.mul(targetRotation, storageOffset);
-    var rotatedStandPos = center + math.mul(targetRotation, standOffset);
-    var rotatedTraderPos = center + math.mul(targetRotation, traderOffset);
-
-    // Mover e rotacionar StorageChest (tile)
     if (StorageChest.Exists()) {
       StorageChest.SetPosition(rotatedStoragePos);
       RotateTile(StorageChest, rotationStep);
     }
 
-    // Mover e rotacionar Trader (unidade)
     if (Trader.Exists()) {
       Trader.SetPosition(rotatedTraderPos);
-      // Fazer o trader "olhar" para a direção cardeal
       var lookAtDirection = math.mul(targetRotation, new float3(0, 0, 1));
       var lookAtTarget = rotatedTraderPos + lookAtDirection;
 
@@ -221,79 +210,6 @@ internal class GhostTraderModel {
   }
 
   private void RotateTile(Entity tileEntity, int rotationStep) {
-    // rotationStep: 0=Norte, 1=Leste, 2=Sul, 3=Oeste
-
-    // Enum values baseado na análise dos dados
-    var tileRotations = new[] {
-      TileRotation.None,           // Norte (0°)
-      TileRotation.Clockwise_90,   // Leste (90°)
-      TileRotation.Clockwise_180,  // Sul (180°)
-      TileRotation.Clockwise_270   // Oeste (270°)
-    };
-
-    // Quaternions para cada direção
-    var quaternions = new quaternion[] {
-      quaternion.identity,                          // Norte (0°)
-      quaternion.RotateY(math.radians(90f)),        // Leste (90°)
-      quaternion.RotateY(math.radians(180f)),       // Sul (180°)
-      quaternion.RotateY(math.radians(270f))        // Oeste (270°)
-    };
-
-    var tileRotation = tileRotations[rotationStep];
-    var newRotation = quaternions[rotationStep];
-    var tilePosition = tileEntity.Read<TilePosition>();
-
-    // 1. Atualizar TilePosition
-
-    tileEntity.With((ref TilePosition tilePos) => {
-      tilePos.TileRotation = tileRotation;
-    });
-
-
-    // 2. Atualizar TileModelSpatialData
-
-    tileEntity.With((ref TileModelSpatialData spatialData) => {
-      spatialData.LastTilePosition = tilePosition;
-    });
-
-
-    // 3. Atualizar StaticTransformCompatible
-
-    tileEntity.With((ref StaticTransformCompatible compatible) => {
-      compatible.NonStaticTransform_Rotation = tileRotation;
-    });
-
-
-    // 4. Atualizar Rotation
-
-    tileEntity.Write(new Rotation { Value = newRotation });
-
-
-    // 5. Atualizar LocalTransform
-
-    tileEntity.With((ref LocalTransform localTransform) => {
-      localTransform.Rotation = newRotation;
-    });
-
-
-    // 6. Atualizar LocalToWorld
-
-    tileEntity.With((ref LocalToWorld localToWorld) => {
-      // Calcular Right e Forward baseados na rotação
-      var right = math.mul(newRotation, new float3(1f, 0f, 0f));
-      var forward = math.mul(newRotation, new float3(0f, 0f, 1f));
-      var up = new float3(0f, 1f, 0f);  // Up sempre para cima
-
-      // Obter posição atual
-      var currentPosition = localToWorld.Position;
-
-      // Criar matrix de transformação no formato correto
-      localToWorld.Value = new float4x4(
-        new float4(right.x, up.x, forward.x, currentPosition.x),
-        new float4(right.y, up.y, forward.y, currentPosition.y),
-        new float4(right.z, up.z, forward.z, currentPosition.z),
-        new float4(0f, 0f, 0f, 1f)
-      );
-    });
+    TraderModel.RotateTile(tileEntity, rotationStep);
   }
 }

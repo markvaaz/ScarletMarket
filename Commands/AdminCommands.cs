@@ -198,23 +198,14 @@ public static class AdminCommands {
 
   [Command("get inactive", adminOnly: true)]
   public static void GetInactiveShops(ChatCommandContext ctx, int days) {
-    var platformIds = TraderService.TraderById.Keys;
     int count = 0;
+    var traders = TraderService.TraderEntities.Values;
 
-    foreach (var id in platformIds) {
-      if (!PlayerService.TryGetById(id, out var player)) {
-        continue;
-      }
-
+    foreach (var trader in traders) {
+      var player = trader.Owner;
       var lastConnected = player.ConnectedSince;
 
       if (lastConnected.AddDays(days) > DateTime.UtcNow) {
-        continue;
-      }
-
-      var trader = TraderService.GetTrader(player.PlatformId);
-
-      if (trader == null) {
         continue;
       }
 

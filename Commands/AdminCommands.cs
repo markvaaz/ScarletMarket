@@ -196,7 +196,7 @@ public static class AdminCommands {
     ctx.Reply($"Removed {count} empty shops.".FormatSuccess());
   }
 
-  [Command("get inactive shops", adminOnly: true)]
+  [Command("get inactives", adminOnly: true)]
   public static void GetInactiveShops(ChatCommandContext ctx, int days) {
     var platformIds = TraderService.TraderById.Keys;
     int count = 0;
@@ -226,32 +226,21 @@ public static class AdminCommands {
   }
 
   [Command("iwanttoclearinactiveshops", adminOnly: true)]
-  public static void ClearInactiveShops(ChatCommandContext ctx, int days) {
-    var platformId = TraderService.TraderById.Keys;
+  public static void ClearInactiveShops(ChatCommandContext ctx, int maxDays) {
     int count = 0;
+    var traders = TraderService.TraderEntities.Values;
 
-    foreach (var id in platformId) {
-      if (!PlayerService.TryGetById(id, out var player)) {
-        continue;
+    foreach (var trader in traders) {
+      var player = trader.Owner;
+      var lastOnline = player.ConnectedSince;
+      if (lastOnline < DateTime.Now.AddDays(-maxDays)) {
+        TraderService.ForceRemoveTrader(player);
+        count++;
+        ctx.Reply($"Removed inactive shop: ~{trader.Name}~ at ~{trader.Position}~ (Last connected: ~{lastOnline}~)".FormatSuccess());
       }
-
-      var lastConnected = player.ConnectedSince;
-
-      if (lastConnected.AddDays(days) > DateTime.UtcNow) {
-        continue;
-      }
-
-      var trader = TraderService.GetTrader(player.PlatformId);
-
-      if (trader == null) {
-        continue;
-      }
-
-      count++;
-      TraderService.ForceRemoveTrader(player);
     }
 
-    ctx.Reply($"Removed {count} inactive shops that haven't been used in the last {days} days.".FormatSuccess());
+    ctx.Reply($"Removed {count} inactive shops that haven't been used in the last {maxDays} days.".FormatSuccess());
   }
 
   [Command("iwanttoremoveeverything", "Remove all shop related entities. Be careful!", adminOnly: true)]

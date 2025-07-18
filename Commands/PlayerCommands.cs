@@ -42,6 +42,8 @@ public static class PlayerCommands {
     }
 
     trader.SetAsReady();
+
+    ctx.Reply("Shop opened! You can now sell items to other players.".FormatSuccess());
   }
 
   [Command("close", "Close your shop for editing")]

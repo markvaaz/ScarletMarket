@@ -196,7 +196,7 @@ public static class AdminCommands {
     ctx.Reply($"Removed {count} empty shops.".FormatSuccess());
   }
 
-  [Command("get inactives", adminOnly: true)]
+  [Command("get inactive", adminOnly: true)]
   public static void GetInactiveShops(ChatCommandContext ctx, int days) {
     var platformIds = TraderService.TraderById.Keys;
     int count = 0;

@@ -26,7 +26,7 @@ internal class TraderModel {
   public Entity DefaultStandEntity => TraderService.DefaultStandEntity;
   public PlayerData Owner { get; private set; }
   public PrefabGUID State { get; private set; }
-  public float3 Position => Plot?.Position ?? new float3(0, 0, 0);
+  public float3 Position => Plot?.Position ?? Trader.Position();
   public static float3 StorageOffset => new(0, 0, -0.75f);
   public static float3 TraderAndStandOffset => new(0, 0, 1.25f);
   public static float3 TraderLookAtOffset => new(0, 0, 1f);

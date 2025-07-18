@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using ProjectM;
 using ScarletCore;
@@ -7,6 +8,7 @@ using ScarletCore.Systems;
 using ScarletCore.Utils;
 using ScarletMarket.Models;
 using Stunlock.Core;
+using Stunlock.Network;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -39,6 +41,31 @@ internal static class TraderService {
     SetContainerSize(Spawnable.StorageChest, 63);
     SetContainerSize(Spawnable.StandChest, 35);
     RegisterOnLoad();
+    RemoveInactiveTraders();
+  }
+
+  public static void RemoveInactiveTraders() {
+    if (!Plugin.Settings.Get<bool>("TraderTimeoutEnabled")) {
+      Log.Info("Trader timeout is disabled, skipping removal of inactive traders.");
+      return;
+    }
+
+    if (Plugin.Settings.Get<bool>("RemoveEmptyTradersOnStartup")) {
+      var count = ClearEmptyTraders();
+      if (count > 0) {
+        Log.Info($"Removed {count} empty traders.");
+      }
+    }
+
+    foreach (var trader in TraderEntities.Values) {
+      var player = trader.Owner;
+      var lastOnline = player.ConnectedSince;
+      var maxDays = Settings.Get<int>("MaxInactiveDays");
+      if (lastOnline < DateTime.Now.AddDays(-maxDays)) {
+        ForceRemoveTrader(player);
+        Log.Info($"Removed inactive trader {player.Name} ({player.PlatformId}) due to inactivity.");
+      }
+    }
   }
 
   public static void TryBuyPlot(PlayerData player) {
@@ -304,11 +331,6 @@ internal static class TraderService {
       if (storages.TryGetValue(player, out var storageEntity) && stands.TryGetValue(player, out var standEntity) && coffins.TryGetValue(player, out var coffinEntity)) {
         var traderModel = new TraderModel(player, storageEntity, standEntity, traderEntity, coffinEntity);
 
-        if (traderModel.IsEmpty()) {
-          traderModel.Destroy();
-          continue;
-        }
-
         TraderEntities[standEntity] = traderModel;
         StorageEntities[storageEntity] = traderModel;
         StandEntities[traderEntity] = traderModel;
@@ -334,6 +356,7 @@ internal static class TraderService {
   public static void BindPlotsToTraders() {
     foreach (var plot in Plots) {
       if (!TryGetTraderInPlot(plot, out var trader)) {
+        Log.Info("No trader found in plot, showing plot instead.");
         plot.Show();
         continue;
       }

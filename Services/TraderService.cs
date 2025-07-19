@@ -414,9 +414,11 @@ internal static class TraderService {
   }
 
   public static void ClearAll() {
-    var query = GameSystems.EntityManager.CreateEntityQuery(
-      ComponentType.ReadOnly<NameableInteractable>()
-    ).ToEntityArray(Allocator.Temp);
+    EntityQueryBuilder queryBuilder = new(Allocator.Temp);
+    queryBuilder.AddAll(ComponentType.ReadOnly<NameableInteractable>());
+    queryBuilder.WithOptions(EntityQueryOptions.IncludeDisabled);
+
+    var query = GameSystems.EntityManager.CreateEntityQuery(ref queryBuilder).ToEntityArray(Allocator.Temp);
 
     foreach (var entity in query) {
       if (!entity.Has<NameableInteractable>()) continue;

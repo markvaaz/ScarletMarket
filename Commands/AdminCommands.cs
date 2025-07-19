@@ -23,6 +23,34 @@ public static class AdminCommands {
     ctx.Reply($"Plot created at {plot.Position}.".FormatSuccess());
   }
 
+  [Command("showradius", adminOnly: true)]
+  public static void ShowRadius(ChatCommandContext ctx) {
+    var plots = TraderService.Plots;
+    if (plots.Count == 0) {
+      ctx.Reply("No plots found.".FormatError());
+      return;
+    }
+
+    foreach (var plot in plots) {
+      plot.ShowPlot();
+      ctx.Reply($"Showing plot at {plot.Position} with radius {plot.Radius}.".FormatSuccess());
+    }
+  }
+
+  [Command("hideradius", adminOnly: true)]
+  public static void HideRadius(ChatCommandContext ctx) {
+    var plots = TraderService.Plots;
+    if (plots.Count == 0) {
+      ctx.Reply("No plots found.".FormatError());
+      return;
+    }
+
+    foreach (var plot in plots) {
+      plot.HidePlot();
+      ctx.Reply($"Hiding plot at {plot.Position}.".FormatSuccess());
+    }
+  }
+
   [Command("claimaccess", adminOnly: true)]
   public static void GiveMeAccess(ChatCommandContext ctx) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {

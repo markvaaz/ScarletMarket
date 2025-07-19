@@ -29,9 +29,9 @@ internal static class InventoryPatches {
             !niem.TryGetValue(moveItemEvent.FromInventory, out Entity fromInv)) continue;
 
         // Check if inventories are relevant to trader system
-        var toInvIsStand = toInv.IdEquals(STAND_ID);
-        var toInvIsStorage = toInv.IdEquals(STORAGE_ID);
-        var fromInvIsStand = fromInv.IdEquals(STAND_ID);
+        var toInvIsStand = toInv.IdEquals(Ids.Stand);
+        var toInvIsStorage = toInv.IdEquals(Ids.Storage);
+        var fromInvIsStand = fromInv.IdEquals(Ids.Stand);
 
         if (!fromInvIsStand && !toInvIsStand && !toInvIsStorage) continue;
 
@@ -44,7 +44,7 @@ internal static class InventoryPatches {
 
         // Block same inventory movements
         if (toInv == fromInv) {
-          TraderService.SendErrorSCT(player, CANNOT_MOVE_MESSAGE);
+          TraderService.SendErrorSCT(player, SCTMessages.CannotMove);
           entity.Destroy(true);
           continue;
         }
@@ -61,7 +61,7 @@ internal static class InventoryPatches {
         if (!playerOwnsTrader && isRemovingItem && TraderModel.IsValidSlot(moveItemEvent.FromSlot)) {
           if (!trader.TryBuyItem(player, moveItemEvent.FromSlot)) {
             Log.Info($"Player {player.Name} tried to remove an item from a trader they do not own.");
-            TraderService.SendErrorSCT(player, CANNOT_DO_MESSAGE);
+            TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
             entity.Destroy(true);
           }
           continue;
@@ -74,7 +74,7 @@ internal static class InventoryPatches {
         if (playerOwnsTrader && isAddingItem && traderIsWaitingForItem && TraderModel.TryGetItemAtSlot(fromInv, moveItemEvent.FromSlot, out _)) {
           if (moveItemEvent.ToSlot != -1 && !TraderModel.IsValidSlot(moveItemEvent.ToSlot)) {
             entity.Destroy(true);
-            TraderService.SendErrorSCT(player, CANNOT_DO_MESSAGE);
+            TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
             continue;
           }
 
@@ -90,7 +90,7 @@ internal static class InventoryPatches {
         }
 
         if (playerOwnsTrader && isAddingItem && trader.State == TraderState.Ready) {
-          trader.SendErrorSCT(DISABLED_MESSAGE);
+          trader.SendErrorSCT(SCTMessages.Disabled);
         }
 
         entity.Destroy(true);
@@ -118,7 +118,7 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(dropItemEvent.Inventory, out Entity inv)) continue;
 
-        if (!inv.IdEquals(STAND_ID)) continue;
+        if (!inv.IdEquals(Ids.Stand)) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
@@ -126,7 +126,7 @@ internal static class InventoryPatches {
 
         var player = fromCharacter.Character.GetPlayerData();
 
-        TraderService.SendErrorSCT(player, CANNOT_MOVE_MESSAGE);
+        TraderService.SendErrorSCT(player, SCTMessages.CannotMove);
 
         entity.Destroy(true);
       }
@@ -150,7 +150,7 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(sortEvent.Inventory, out Entity inv)) continue;
 
-        if (!inv.IdEquals(STORAGE_ID) && !inv.IdEquals(STAND_ID)) continue;
+        if (!inv.IdEquals(Ids.Storage) && !inv.IdEquals(Ids.Stand)) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
@@ -160,7 +160,7 @@ internal static class InventoryPatches {
         var trader = TraderService.GetTrader(inv);
 
         if (trader.Owner == player) trader?.SetAsNotReady();
-        else TraderService.SendErrorSCT(player, CANNOT_DO_MESSAGE);
+        else TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
 
         entity.Destroy(true);
       }
@@ -184,7 +184,7 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(sortEvent.Inventory, out Entity inv)) continue;
 
-        if (!inv.IdEquals(STORAGE_ID) && !inv.IdEquals(STAND_ID)) continue;
+        if (!inv.IdEquals(Ids.Storage) && !inv.IdEquals(Ids.Stand)) continue;
 
         entity.Destroy(true);
       }
@@ -208,7 +208,7 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(moveItemEvent.ToInventory, out Entity toInv) || !niem.TryGetValue(moveItemEvent.FromInventory, out Entity fromInv)) continue;
 
-        if (!fromInv.IdEquals(STAND_ID) && !toInv.IdEquals(STAND_ID) && !toInv.IdEquals(STORAGE_ID)) continue;
+        if (!fromInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Storage)) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
@@ -218,7 +218,7 @@ internal static class InventoryPatches {
         var trader = TraderService.GetTrader(fromInv);
 
         if (trader.Owner == player) trader?.SetAsReady();
-        else TraderService.SendErrorSCT(player, CANNOT_DO_MESSAGE);
+        else TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
 
         entity.Destroy(true);
       }
@@ -242,7 +242,7 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(moveItemEvent.ToInventory, out Entity toInv) || !niem.TryGetValue(moveItemEvent.FromInventory, out Entity fromInv)) continue;
 
-        if (!fromInv.IdEquals(STAND_ID) && !toInv.IdEquals(STAND_ID) && !toInv.IdEquals(STORAGE_ID)) continue;
+        if (!fromInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Storage)) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
@@ -250,7 +250,7 @@ internal static class InventoryPatches {
 
         var player = fromCharacter.Character.GetPlayerData();
 
-        TraderService.SendErrorSCT(player, CANNOT_MOVE_MESSAGE);
+        TraderService.SendErrorSCT(player, SCTMessages.CannotMove);
 
         entity.Destroy(true);
       }
@@ -274,7 +274,7 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(splitEvent.Inventory, out Entity inv)) continue;
 
-        if (!inv.IdEquals(STORAGE_ID) && !inv.IdEquals(STAND_ID)) continue;
+        if (!inv.IdEquals(Ids.Storage) && !inv.IdEquals(Ids.Stand)) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
@@ -282,7 +282,7 @@ internal static class InventoryPatches {
 
         var player = fromCharacter.Character.GetPlayerData();
 
-        TraderService.SendErrorSCT(player, CANNOT_DO_MESSAGE);
+        TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
 
         entity.Destroy(true);
       }
@@ -306,7 +306,7 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(splitEvent.FromInventory, out Entity fromInv) || !niem.TryGetValue(splitEvent.ToInventory, out Entity toInv)) continue;
 
-        if (!fromInv.IdEquals(STORAGE_ID) && !fromInv.IdEquals(STAND_ID) && !toInv.IdEquals(STORAGE_ID) && !toInv.IdEquals(STAND_ID)) continue;
+        if (!fromInv.IdEquals(Ids.Storage) && !fromInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Storage) && !toInv.IdEquals(Ids.Stand)) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
@@ -314,7 +314,7 @@ internal static class InventoryPatches {
 
         var player = fromCharacter.Character.GetPlayerData();
 
-        TraderService.SendErrorSCT(player, CANNOT_DO_MESSAGE);
+        TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
 
         entity.Destroy(true);
       }
@@ -338,7 +338,7 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(moveItemEvent.ToInventory, out Entity toInv) || !niem.TryGetValue(moveItemEvent.FromInventory, out Entity fromInv)) continue;
 
-        if (!toInv.IdEquals(STAND_ID) && !toInv.IdEquals(STORAGE_ID)) continue;
+        if (!toInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Storage)) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
@@ -346,7 +346,7 @@ internal static class InventoryPatches {
 
         var player = fromCharacter.Character.GetPlayerData();
 
-        TraderService.SendErrorSCT(player, CANNOT_DO_MESSAGE);
+        TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
 
         entity.Destroy(true);
       }
@@ -370,7 +370,7 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(unequipEvent.ToInventory, out Entity toInv)) continue;
 
-        if (!toInv.IdEquals(STORAGE_ID) && !toInv.IdEquals(STAND_ID)) continue;
+        if (!toInv.IdEquals(Ids.Storage) && !toInv.IdEquals(Ids.Stand)) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
@@ -378,7 +378,7 @@ internal static class InventoryPatches {
 
         var player = fromCharacter.Character.GetPlayerData();
 
-        TraderService.SendErrorSCT(player, CANNOT_DO_MESSAGE);
+        TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
 
         entity.Destroy(true);
       }

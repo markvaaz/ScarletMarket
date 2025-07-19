@@ -8,7 +8,6 @@ using ScarletCore.Systems;
 using ScarletCore.Utils;
 using ScarletMarket.Models;
 using Stunlock.Core;
-using Stunlock.Network;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
@@ -278,7 +277,7 @@ internal static class TraderService {
     foreach (var entity in query) {
       if (!entity.Has<NameableInteractable>()) continue;
 
-      if (entity.IdEquals(PLOT_ID)) {
+      if (entity.IdEquals(Ids.Plot)) {
         plots[entity] = entity;
         continue;
       }
@@ -286,25 +285,25 @@ internal static class TraderService {
       if (!entity.Has<Follower>()) continue;
       var followed = entity.Read<Follower>().Followed._Value;
 
-      if (entity.IdEquals(INSPECT_ID)) {
+      if (entity.IdEquals(Ids.Inspect)) {
         inspects[followed] = entity;
-      } else if (entity.IdEquals(GHOST_STORAGE_ID)) {
+      } else if (entity.IdEquals(Ids.GhostStorage)) {
         ghostStorages[followed] = entity;
-      } else if (entity.IdEquals(GHOST_TRADER_ID)) {
+      } else if (entity.IdEquals(Ids.GhostTrader)) {
         ghostTraders[followed] = entity;
-      } else if (entity.IdEquals(GHOST_COFFIN_ID)) {
+      } else if (entity.IdEquals(Ids.GhostCoffin)) {
         ghostCoffins[followed] = entity;
       } else {
         var playerData = followed.GetPlayerData();
         if (playerData == null) continue;
 
-        if (entity.IdEquals(TRADER_ID)) {
+        if (entity.IdEquals(Ids.Trader)) {
           traders[playerData] = entity;
-        } else if (entity.IdEquals(STORAGE_ID)) {
+        } else if (entity.IdEquals(Ids.Storage)) {
           storages[playerData] = entity;
-        } else if (entity.IdEquals(STAND_ID)) {
+        } else if (entity.IdEquals(Ids.Stand)) {
           stands[playerData] = entity;
-        } else if (entity.IdEquals(COFFIN_ID)) {
+        } else if (entity.IdEquals(Ids.Coffin)) {
           coffins[playerData] = entity;
         }
       }
@@ -376,6 +375,7 @@ internal static class TraderService {
         StorageEntities.Remove(trader.StorageChest);
         StandEntities.Remove(trader.Trader);
         TraderById.Remove(trader.Owner.PlatformId);
+        trader.Plot.Show();
         trader.Destroy();
         count++;
       }
@@ -421,9 +421,9 @@ internal static class TraderService {
     foreach (var entity in query) {
       if (!entity.Has<NameableInteractable>()) continue;
       if (
-        entity.IdEquals(TRADER_ID) || entity.IdEquals(STORAGE_ID) || entity.IdEquals(COFFIN_ID) ||
-        entity.IdEquals(STAND_ID) || entity.IdEquals(INSPECT_ID) || entity.IdEquals(PLOT_ID) ||
-        entity.IdEquals(GHOST_TRADER_ID) || entity.IdEquals(GHOST_STORAGE_ID) || entity.IdEquals(GHOST_COFFIN_ID)
+        entity.IdEquals(Ids.Trader) || entity.IdEquals(Ids.Storage) || entity.IdEquals(Ids.Coffin) ||
+        entity.IdEquals(Ids.Stand) || entity.IdEquals(Ids.Inspect) || entity.IdEquals(Ids.Plot) ||
+        entity.IdEquals(Ids.GhostTrader) || entity.IdEquals(Ids.GhostStorage) || entity.IdEquals(Ids.GhostCoffin)
       ) {
         entity.Destroy();
       }

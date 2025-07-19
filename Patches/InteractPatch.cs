@@ -31,7 +31,7 @@ internal static class InteractPatch {
 
       var plot = inspect.Read<Follower>().Followed._Value;
 
-      if (plot.IsNull() || !plot.Exists() || !plot.IdEquals(PLOT_ID)) continue;
+      if (plot.IsNull() || !plot.Exists() || !plot.IdEquals(Ids.Plot)) continue;
 
       TraderService.TryBuyPlot(player);
     }

@@ -94,7 +94,7 @@ internal class GhostTraderModel {
   }
 
   private void SetupGhostCoffin() {
-    Coffin.SetId(GHOST_COFFIN_ID);
+    Coffin.SetId(Ids.GhostCoffin);
     Attach(Coffin);
     foreach (var permaBuffGuid in ServantPermaBuffs) {
       BuffService.TryApplyBuff(Coffin, permaBuffGuid);
@@ -103,7 +103,7 @@ internal class GhostTraderModel {
   }
 
   private void SetupGhostStorageChest() {
-    StorageChest.SetId(GHOST_STORAGE_ID);
+    StorageChest.SetId(Ids.GhostStorage);
     Attach(StorageChest);
 
     StorageChest.Remove<DestroyWhenInventoryIsEmpty>();
@@ -122,7 +122,7 @@ internal class GhostTraderModel {
   }
 
   private void SetupGhostTrader() {
-    Trader.SetId(GHOST_TRADER_ID);
+    Trader.SetId(Ids.GhostTrader);
     Attach(Trader);
 
     Trader.With((ref EntityInput lookAtTarget) => {

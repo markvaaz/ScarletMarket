@@ -161,7 +161,7 @@ internal class TraderModel {
 
   public void SetAsReady() {
     if (State == TraderState.Ready) {
-      SendErrorSCT(ALREADY_ASSIGNED_MESSAGE);
+      SendErrorSCT(SCTMessages.AlreadyAssigned);
       return;
     }
 
@@ -169,19 +169,19 @@ internal class TraderModel {
     var hasItemWithNoCost = HasItemWithNoCost();
 
     if (hasAnyValidTradePairs && !hasItemWithNoCost) {
-      SendSucessSCT(OPEN_MESSAGE);
+      SendSucessSCT(SCTMessages.Open);
       SetState(TraderState.Ready);
       return;
     }
 
     if (hasItemWithNoCost) {
-      SendErrorSCT(CANNOT_DO_MESSAGE);
+      SendErrorSCT(SCTMessages.CannotDo);
       SendMessage(Owner, "Set a price for your item before opening the shop.");
       return;
     }
 
     if (!hasAnyValidTradePairs) {
-      SendErrorSCT(CANNOT_DO_MESSAGE);
+      SendErrorSCT(SCTMessages.CannotDo);
       SendMessage("Add an item to your shop first!");
       return;
     }
@@ -189,10 +189,10 @@ internal class TraderModel {
 
   public void SetAsNotReady() {
     if (State == TraderState.WaitingForItem || State == TraderState.WaitingForCost) {
-      SendErrorSCT(ALREADY_ASSIGNED_MESSAGE);
+      SendErrorSCT(SCTMessages.AlreadyAssigned);
       return;
     }
-    SendSucessSCT(CLOSE_MESSAGE);
+    SendSucessSCT(SCTMessages.Close);
     SetState(TraderState.WaitingForItem);
   }
 
@@ -429,12 +429,12 @@ internal class TraderModel {
 
   private void SetupCoffin() {
     Attach(Coffin);
-    Coffin.SetId(COFFIN_ID);
+    Coffin.SetId(Ids.Coffin);
   }
 
   private void SetupStorageChest() {
     Attach(StorageChest);
-    StorageChest.SetId(STORAGE_ID);
+    StorageChest.SetId(Ids.Storage);
     StorageChest.SetTeam(Owner.CharacterEntity);
     StorageChest.Remove<DestroyWhenInventoryIsEmpty>();
     StorageChest.Remove<ShrinkInventoryWhenWithdrawn>();
@@ -454,7 +454,7 @@ internal class TraderModel {
 
   private void SetupStand() {
     Attach(Stand);
-    Stand.SetId(STAND_ID);
+    Stand.SetId(Ids.Stand);
     Stand.With((ref EditableTileModel editableTileModel) => {
       editableTileModel.CanDismantle = false;
       editableTileModel.CanMoveAfterBuild = false;
@@ -473,7 +473,7 @@ internal class TraderModel {
 
   private void SetupTrader() {
     Attach(Trader);
-    Trader.SetId(TRADER_ID);
+    Trader.SetId(Ids.Trader);
     Trader.SetTeam(Owner.CharacterEntity);
     Trader.With((ref EntityInput lookAtTarget) => {
       lookAtTarget.SetAllAimPositions(Position + TraderLookAtOffset);

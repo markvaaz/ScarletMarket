@@ -66,6 +66,9 @@ internal class PlotModel {
     if (Inspect != Entity.Null && Inspect.Exists()) {
       Inspect.SetPosition(Position);
     }
+  }
+
+  public void ShowPlot() {
     PlayAnimation(0f, PLOT_RADIUS, SetRadius);
   }
 
@@ -78,6 +81,9 @@ internal class PlotModel {
     if (Inspect != Entity.Null && Inspect.Exists()) {
       Inspect.SetPosition(Position + new float3(0, COFFIN_HEIGHT, 0));
     }
+  }
+
+  public void HidePlot() {
     PlayAnimation(PLOT_RADIUS, 0f, SetRadius);
   }
 

@@ -32,8 +32,9 @@ internal static class InventoryPatches {
         var toInvIsStand = toInv.IdEquals(Ids.Stand);
         var toInvIsStorage = toInv.IdEquals(Ids.Storage);
         var fromInvIsStand = fromInv.IdEquals(Ids.Stand);
+        var fromInvIsStorage = fromInv.IdEquals(Ids.Storage);
 
-        if (!fromInvIsStand && !toInvIsStand && !toInvIsStorage) continue;
+        if (!fromInvIsStand && !toInvIsStand && !toInvIsStorage && !fromInvIsStorage) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
@@ -41,6 +42,11 @@ internal static class InventoryPatches {
         if (!fromCharacter.Character.Has<PlayerCharacter>() || !fromCharacter.User.Has<User>()) continue;
 
         var player = fromCharacter.Character.GetPlayerData();
+
+        // If player is removing item from their own storage allow it
+        if (fromInvIsStorage && fromInv.Read<Follower>().Followed._Value == player.UserEntity) {
+          continue;
+        }
 
         // Block same inventory movements
         if (toInv == fromInv) {

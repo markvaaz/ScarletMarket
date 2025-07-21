@@ -124,13 +124,18 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(dropItemEvent.Inventory, out Entity inv)) continue;
 
-        if (!inv.IdEquals(Ids.Stand)) continue;
+        if (!inv.IdEquals(Ids.Stand) && !inv.IdEquals(Ids.Storage)) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
         if (!fromCharacter.Character.Has<PlayerCharacter>() || !fromCharacter.User.Has<User>()) continue;
 
         var player = fromCharacter.Character.GetPlayerData();
+
+        // If player is removing item from their own storage allow it
+        if (inv.IdEquals(Ids.Storage) && inv.Read<Follower>().Followed._Value == player.UserEntity) {
+          continue;
+        }
 
         TraderService.SendErrorSCT(player, SCTMessages.CannotMove);
 
@@ -214,13 +219,19 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(moveItemEvent.ToInventory, out Entity toInv) || !niem.TryGetValue(moveItemEvent.FromInventory, out Entity fromInv)) continue;
 
-        if (!fromInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Storage)) continue;
+        if (!fromInv.IdEquals(Ids.Storage) && !fromInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Storage)) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
         if (!fromCharacter.Character.Has<PlayerCharacter>() || !fromCharacter.User.Has<User>()) continue;
 
         var player = fromCharacter.Character.GetPlayerData();
+
+        // If player is removing item from their own storage allow it
+        if (fromInv.IdEquals(Ids.Storage) && fromInv.Read<Follower>().Followed._Value == player.UserEntity) {
+          continue;
+        }
+
         var trader = TraderService.GetTrader(fromInv);
 
         if (trader.Owner == player) trader?.SetAsReady();
@@ -248,13 +259,18 @@ internal static class InventoryPatches {
 
         if (!niem.TryGetValue(moveItemEvent.ToInventory, out Entity toInv) || !niem.TryGetValue(moveItemEvent.FromInventory, out Entity fromInv)) continue;
 
-        if (!fromInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Storage)) continue;
+        if (!fromInv.IdEquals(Ids.Storage) && !fromInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Stand) && !toInv.IdEquals(Ids.Storage)) continue;
 
         var fromCharacter = entity.Read<FromCharacter>();
 
         if (!fromCharacter.Character.Has<PlayerCharacter>() || !fromCharacter.User.Has<User>()) continue;
 
         var player = fromCharacter.Character.GetPlayerData();
+
+        // If player is removing item from their own storage allow it
+        if (fromInv.IdEquals(Ids.Storage) && fromInv.Read<Follower>().Followed._Value == player.UserEntity) {
+          continue;
+        }
 
         TraderService.SendErrorSCT(player, SCTMessages.CannotMove);
 

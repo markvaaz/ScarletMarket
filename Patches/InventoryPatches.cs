@@ -379,6 +379,38 @@ internal static class InventoryPatches {
     }
   }
 
+  [HarmonyPatch(typeof(EquipItemFromInventorySystem), nameof(EquipItemFromInventorySystem.OnUpdate))]
+  [HarmonyPrefix]
+  public static void Prefix(EquipItemFromInventorySystem __instance) {
+    if (!GameSystems.Initialized) return;
+    var entities = __instance._Query.ToEntityArray(Allocator.Temp);
+
+    try {
+      foreach (var entity in entities) {
+        var equipEvent = entity.Read<EquipItemFromInventoryEvent>();
+        var niem = GameSystems.NetworkIdSystem._NetworkIdLookupMap._NetworkIdToEntityMap;
+
+        if (!niem.TryGetValue(equipEvent.FromInventory, out Entity fromInv)) continue;
+
+        if (!fromInv.IdEquals(Ids.Storage) && !fromInv.IdEquals(Ids.Stand)) continue;
+
+        var fromCharacter = entity.Read<FromCharacter>();
+
+        if (!fromCharacter.Character.Has<PlayerCharacter>() || !fromCharacter.User.Has<User>()) continue;
+
+        var player = fromCharacter.Character.GetPlayerData();
+
+        TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
+
+        entity.Destroy(true);
+      }
+    } catch (System.Exception ex) {
+      Log.Error($"Error in UnEquipItemSystemPatch: {ex.Message}");
+    } finally {
+      entities.Dispose();
+    }
+  }
+
   [HarmonyPatch(typeof(UnEquipItemSystem), nameof(UnEquipItemSystem.OnUpdate))]
   [HarmonyPrefix]
   public static void Prefix(UnEquipItemSystem __instance) {

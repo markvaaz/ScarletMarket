@@ -61,7 +61,8 @@ internal static class Buffs {
   public static readonly PrefabGUID DisableAggro = new(1934061152);
   public static readonly PrefabGUID Immaterial = new(1360141727);
   public static readonly PrefabGUID Invisibility = new(1880224358);
-  public static readonly PrefabGUID ClosedVisualClue = new(647429443);
+  public static readonly PrefabGUID ClosedVisualClue1 = new(647429443);
+  public static readonly PrefabGUID ClosedVisualClue2 = new(-883762685);
   public static readonly PrefabGUID Ghost = new(-259674366);
 }
 

@@ -94,12 +94,15 @@ internal class TraderModel {
 
     if (State != TraderState.Ready) {
       MakeStandPrivate();
-      BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue);
+      BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue1);
+      BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue2);
+
       SetTraderName($"{Owner.Name}'s Shop (Closed)");
     } else {
       MakeStandPublic();
       SetTraderName($"{Owner.Name}'s Shop");
-      BuffService.TryRemoveBuff(Trader, Buffs.ClosedVisualClue);
+      BuffService.TryRemoveBuff(Trader, Buffs.ClosedVisualClue1);
+      BuffService.TryRemoveBuff(Trader, Buffs.ClosedVisualClue2);
     }
   }
 

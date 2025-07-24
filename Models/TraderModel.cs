@@ -27,8 +27,10 @@ internal class TraderModel {
   public PlayerData Owner { get; private set; }
   public PrefabGUID State { get; private set; }
   public float3 Position => Plot?.Position ?? Trader.Position();
-  public static float3 StorageOffset => new(0, 0, -0.75f);
-  public static float3 TraderAndStandOffset => new(0, 0, 1.25f);
+  // Offsets for the storage chest and trader/stand entities inside the plot
+  public static int StorageRotationOffset = 3;
+  public static float3 StorageOffset => new(-0.5f, 0, 0.5f);
+  public static float3 TraderAndStandOffset => new(0f, 0, 1.25f);
   public static float3 TraderLookAtOffset => new(0, 0, 1f);
   public PlotModel Plot { get; set; } = null;
   public List<int> BlockedSlots = [];
@@ -94,15 +96,18 @@ internal class TraderModel {
 
     if (State != TraderState.Ready) {
       MakeStandPrivate();
-      BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue1);
-      BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue2);
+
+      if (!BuffService.HasBuff(Trader, Buffs.ClosedVisualClue1))
+        BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue1);
+      // if (!BuffService.HasBuff(Trader, Buffs.ClosedVisualClue2))
+      //   BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue2);
 
       SetTraderName($"{Owner.Name}'s Shop (Closed)");
     } else {
       MakeStandPublic();
       SetTraderName($"{Owner.Name}'s Shop");
       BuffService.TryRemoveBuff(Trader, Buffs.ClosedVisualClue1);
-      BuffService.TryRemoveBuff(Trader, Buffs.ClosedVisualClue2);
+      // BuffService.TryRemoveBuff(Trader, Buffs.ClosedVisualClue2);
     }
   }
 
@@ -238,8 +243,6 @@ internal class TraderModel {
     var slot = noItemCost.Value;
 
     RemoveItemOnSlot(slot);
-
-    Log.Info(HasAnyValidTradePairs());
 
     if (!HasAnyValidTradePairs()) SetState(TraderState.WaitingForItem);
   }
@@ -519,6 +522,17 @@ internal class TraderModel {
     });
   }
 
+  private void UnbindCoffinServant() {
+    Trader.With((ref ServantConnectedCoffin servantConnectedCoffin) => {
+      servantConnectedCoffin.CoffinEntity = NetworkedEntity.ServerEntity(Entity.Null);
+    });
+
+    Coffin.With((ref ServantCoffinstation coffinStation) => {
+      coffinStation.ConnectedServant = NetworkedEntity.ServerEntity(Entity.Null);
+      coffinStation.State = ServantCoffinState.Empty;
+    });
+  }
+
   public void SendSucessSCT(string message) {
     SendSCT(message, new float3(0f, 1f, 0f));
   }
@@ -562,18 +576,15 @@ internal class TraderModel {
     else if (forward.x < -threshold) rotationStep = 3;
 
     var targetRotation = quaternions[rotationStep];
-    var rotatedStoragePos = center + math.mul(targetRotation, StorageOffset);
+    int storageRotationStep = (rotationStep + StorageRotationOffset) % 4;
+    var storageRotation = quaternions[storageRotationStep];
+    var rotatedStoragePos = center + math.mul(storageRotation, StorageOffset);
     var rotatedStandPos = center + math.mul(targetRotation, TraderAndStandOffset);
     var rotatedTraderPos = center + math.mul(targetRotation, TraderAndStandOffset);
 
     if (StorageChest.Exists()) {
       StorageChest.SetPosition(rotatedStoragePos);
-      RotateTile(StorageChest, rotationStep);
-    }
-
-    if (Stand.Exists()) {
-      Stand.SetPosition(rotatedStandPos);
-      RotateTile(Stand, rotationStep);
+      RotateTile(StorageChest, storageRotationStep);
     }
 
     if (Trader.Exists()) {
@@ -584,6 +595,11 @@ internal class TraderModel {
       Trader.With((ref EntityInput lookAtInput) => {
         lookAtInput.SetAllAimPositions(lookAtTarget);
       });
+    }
+
+    if (Stand.Exists()) {
+      Stand.SetPosition(rotatedStandPos);
+      RotateTile(Stand, rotationStep);
     }
   }
 
@@ -638,5 +654,20 @@ internal class TraderModel {
         new float4(0f, 0f, 0f, 1f)
       );
     });
+  }
+
+  public void RespawnTrader() {
+    if (Trader != Entity.Null && Trader.Exists()) {
+      UnbindCoffinServant();
+      Trader.Destroy();
+    }
+
+    var center = Plot?.Position ?? Position;
+    var targetPos = center + TraderAndStandOffset;
+    Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, targetPos, 0f, 0f, -1f, Owner.UserEntity);
+
+    SetupTrader();
+    BindCoffinServant();
+    AlignToPlotRotation();
   }
 }

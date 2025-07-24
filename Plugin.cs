@@ -1,4 +1,5 @@
-﻿using BepInEx;
+﻿using System.Reflection;
+using BepInEx;
 using BepInEx.Logging;
 using BepInEx.Unity.IL2CPP;
 using HarmonyLib;
@@ -28,7 +29,7 @@ public class Plugin : BasePlugin {
     Log.LogInfo($"Plugin {MyPluginInfo.PLUGIN_GUID} version {MyPluginInfo.PLUGIN_VERSION} is loaded!");
 
     _harmony = new Harmony(MyPluginInfo.PLUGIN_GUID);
-    _harmony.PatchAll(System.Reflection.Assembly.GetExecutingAssembly());
+    _harmony.PatchAll(Assembly.GetExecutingAssembly());
 
     Settings = new Settings(MyPluginInfo.PLUGIN_GUID, Instance);
     LoadSettings();
@@ -51,6 +52,7 @@ public class Plugin : BasePlugin {
   public override bool Unload() {
     _harmony?.UnpatchSelf();
     CommandRegistry.UnregisterAssembly();
+    ActionScheduler.UnregisterAssembly(Assembly.GetExecutingAssembly());
     return true;
   }
 

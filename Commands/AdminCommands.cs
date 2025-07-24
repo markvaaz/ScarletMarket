@@ -1,14 +1,24 @@
 using System;
+using System.Collections.Generic;
+using ProjectM;
+using ProjectM.CastleBuilding;
 using ScarletCore;
+using ScarletCore.Data;
 using ScarletCore.Services;
+using ScarletCore.Systems;
 using ScarletCore.Utils;
+using ScarletMarket.Models;
 using ScarletMarket.Services;
+using Unity.Mathematics;
 using VampireCommandFramework;
 
 namespace ScarletMarket.Commands;
 
 [CommandGroup("market")]
 public static class AdminCommands {
+  private static readonly Dictionary<PlayerData, PlotModel> _selectedPlots = [];
+  private static readonly Dictionary<PlayerData, ActionId> _selectedActions = [];
+
   [Command("create plot", adminOnly: true)]
   public static void CreatePlot(ChatCommandContext ctx) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
@@ -16,11 +26,129 @@ public static class AdminCommands {
       return;
     }
 
-    if (!TraderService.TryCreatePlot(player, out var plot)) {
+    if (!TraderService.TryCreatePlot(player, false, out var plot)) {
       return;
     }
 
     ctx.Reply($"Plot created at {plot.Position}.".FormatSuccess());
+  }
+
+  [Command("forcecreate plot", adminOnly: true)]
+  public static void ForceCreatePlot(ChatCommandContext ctx) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    if (!TraderService.TryCreatePlot(player, true, out var plot)) {
+      return;
+    }
+
+    ctx.Reply($"Plot created at {plot.Position}.".FormatSuccess());
+  }
+
+  [Command("select", adminOnly: true)]
+  public static void SelectPlot(ChatCommandContext ctx) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    if (!TraderService.TryGetPlot(player.Position, out var plot)) {
+      ctx.Reply("You need to be inside a plot to select it.".FormatError());
+      return;
+    }
+
+    _selectedPlots[player] = plot;
+    ctx.Reply($"Plot at {plot.Position} selected.".FormatSuccess());
+  }
+
+  [Command("deselect", adminOnly: true)]
+  public static void DeselectPlot(ChatCommandContext ctx) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    if (_selectedPlots.Remove(player)) {
+      ctx.Reply("Plot selection cleared.".FormatSuccess());
+    } else {
+      ctx.Reply("You have no plot selected.".FormatError());
+    }
+  }
+
+  [Command("move", adminOnly: true)]
+  public static void MovePlot(ChatCommandContext ctx, float x, float y, float z) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    if (!_selectedPlots.TryGetValue(player, out var plot)) {
+      ctx.Reply("You have no plot selected.".FormatError());
+      return;
+    }
+
+    var newPosition = new float3(x, y, z);
+
+    if (TraderService.WillOverlapWithExistingPlot(newPosition, plot)) {
+      ctx.Reply("~Cannot move plot:~ would block access to an existing one.".FormatError());
+      return;
+    }
+    plot.MovePlotTo(newPosition);
+    ctx.Reply($"Plot moved to {newPosition}.".FormatSuccess());
+  }
+
+  [Command("move", adminOnly: true)]
+  public static void MovePlot(ChatCommandContext ctx) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    EntityInput entityInput() => player.CharacterEntity.Read<EntityInput>();
+
+    if (!_selectedPlots.TryGetValue(player, out var plot) && !TraderService.TryGetPlot(entityInput().AimPosition, out plot)) {
+      ctx.Reply("You need to aim at a plot to move it.".FormatError());
+      return;
+    }
+
+    _selectedActions[player] = ActionScheduler.OncePerFrame((end) => {
+      var inp = entityInput();
+      if (TraderService.WillOverlapWithExistingPlot(inp.AimPosition, plot)) {
+        return;
+      }
+      plot.MovePlotTo(inp.AimPosition);
+      if (inp.State.InputsDown == SyncedButtonInputAction.Primary) {
+        end();
+        _selectedActions.Remove(player);
+        ctx.Reply("Plot placed.".FormatSuccess());
+      } else if (inp.State.InputsDown == SyncedButtonInputAction.OffensiveSpell) {
+        plot.Rotate();
+      }
+    });
+
+    ctx.Reply($"Plot attached to you, please move it to the desired position.".FormatSuccess());
+    ctx.Reply($"Use ~.market place~ to detach the plot.".Format());
+  }
+
+  [Command("place", adminOnly: true)]
+  public static void DetachPlot(ChatCommandContext ctx) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    if (_selectedPlots.TryGetValue(player, out var plot)) {
+      if (TraderService.WillOverlapWithExistingPlot(player.Position, plot)) {
+        ctx.Reply("~Cannot move plot:~ would block access to an existing one.".FormatError());
+        return;
+      }
+      plot.MovePlotTo(player.Position);
+      ctx.Reply("Plot placed.".FormatSuccess());
+    } else {
+      ctx.Reply("You have no plot attached.".FormatError());
+    }
   }
 
   [Command("showradius", adminOnly: true)]

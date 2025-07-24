@@ -20,6 +20,7 @@ internal static class TraderService {
   public static readonly Dictionary<Entity, TraderModel> StandEntities = [];
   public static readonly Dictionary<ulong, TraderModel> TraderById = [];
   public static readonly List<PlotModel> Plots = [];
+  public static ActionId RunningAnimationCheck { get; private set; }
   private static Entity _defaultStandEntity;
   private static Settings Settings => Plugin.Settings;
   public static Entity DefaultStandEntity {
@@ -41,6 +42,23 @@ internal static class TraderService {
     SetContainerSize(Spawnable.StandChest, 35);
     RegisterOnLoad();
     RemoveInactiveTraders();
+    ActionScheduler.Repeating(SetRandomAnimation, 20f);
+  }
+
+  public static void SetRandomAnimation() {
+    foreach (var trader in TraderEntities.Values) {
+      if (!trader.Trader.Exists()) continue;
+
+      var randomNumber = UnityEngine.Random.Range(0, 3);
+
+      if (randomNumber != 0) continue;
+
+      var animation = Animations.GetRandomAnimation();
+
+      Animations.RemoveAnimations(trader.Trader);
+
+      BuffService.TryApplyBuff(trader.Trader, animation.Key, animation.Value);
+    }
   }
 
   public static void RemoveInactiveTraders() {
@@ -113,24 +131,20 @@ internal static class TraderService {
     MessageService.Send(player, "~Your shop has been created!~ You can now add items to sell.".FormatSuccess());
   }
 
-  public static bool TryCreatePlot(PlayerData player, out PlotModel plot) {
+  public static bool TryCreatePlot(PlayerData player, bool force, out PlotModel plot) {
     if (TryGetPlot(player.Position, out plot)) {
-      MessageService.Send(player, "There's already a plot here!".FormatError());
+      if (force) MessageService.Send(player, "~Cannot force plot:~ would block access to an existing one.".FormatError());
+      else MessageService.Send(player, "There's already a plot here!".FormatError());
+
       return false;
     }
 
-    if (WillOverlapWithExistingPlot(player.Position)) {
+    if (!force && WillOverlapWithExistingPlot(player.Position)) {
       MessageService.Send(player, "Can't create a plot here - it would overlap with an existing one!".FormatError());
       return false;
     }
 
-    // 0.5f grid alignment offset by 0.25f
-    var offset = 0f;
-    var position = new float3(math.round(player.Position.x * 2) / 2f + offset, player.Position.y, math.round(player.Position.z * 2) / 2f + offset);
-
-    Log.Info(position);
-
-    plot = new PlotModel(position);
+    plot = new PlotModel(player.Position);
     Plots.Add(plot);
     return true;
   }
@@ -243,9 +257,10 @@ internal static class TraderService {
     return false;
   }
 
-  public static bool WillOverlapWithExistingPlot(float3 position) {
+  public static bool WillOverlapWithExistingPlot(float3 position, PlotModel excludePlot = null) {
     foreach (var plot in Plots) {
-      if (math.distance(plot.Position, position) < PLOT_RADIUS + plot.Radius) {
+      if (excludePlot != null && plot == excludePlot) continue;
+      if (math.distance(plot.Position, position) < PLOT_RADIUS * 2) {
         return true;
       }
     }
@@ -362,6 +377,7 @@ internal static class TraderService {
 
       trader.Plot = plot;
       plot.Trader = trader;
+      trader.RespawnTrader();
       trader.AlignToPlotRotation();
       plot.Hide();
     }

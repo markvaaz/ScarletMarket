@@ -50,6 +50,7 @@ internal class PlotModel {
     }
     Entity = entity;
     Inspect = inspectEntity;
+    MoveAreaTo(Position);
     SetRadius(0);
   }
 
@@ -104,7 +105,22 @@ internal class PlotModel {
   }
 
   public void MoveAreaTo(float3 position) {
-    TeleportService.TeleportToPosition(Entity, position);
+    // Align the plot to the building grid
+    var offset = -0.25f;
+    var snapped = new float3(math.round(position.x * 2) / 2f, position.y, math.round(position.z * 2) / 2f);
+    var rotation = Rotation;
+    var forward = math.mul(rotation, new float3(1, 0, 0));
+    var pos = snapped + forward * offset;
+    TeleportService.TeleportToPosition(Entity, pos);
+    TeleportService.TeleportToPosition(Inspect, pos);
+  }
+
+  public void MovePlotTo(float3 position) {
+    if (Entity.IsNull() || !Entity.Exists()) return;
+
+    MoveAreaTo(position);
+    GhostPlaceholder?.AlignToPlotRotation();
+    Trader?.AlignToPlotRotation();
   }
 
   public int GetCurrentRotationDegrees() {

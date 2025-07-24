@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using ScarletCore.Services;
 using ScarletCore.Systems;
 using Stunlock.Core;
 using Unity.Collections;
@@ -7,7 +10,7 @@ namespace ScarletMarket;
 
 internal static class Constants {
   public const int COFFIN_HEIGHT = 223;
-  public const float PLOT_RADIUS = 2.3f;
+  public const float PLOT_RADIUS = 2f;
   public static readonly PrefabGUID NEUTRAL_FACTION = new(-1430861195);
   public static readonly PrefabGUID BLOCK_SLOT_ITEM = new(1488205677); // -696770536
   public static readonly PrefabGUID SCT_PREFAB = new(-1404311249);
@@ -51,7 +54,7 @@ internal static class Spawnable {
   public static readonly PrefabGUID StandChest = new(279811010);
   public static readonly PrefabGUID StorageChest = new(-220201461);
   public static readonly PrefabGUID Coffin = new(723455393);
-  public static readonly PrefabGUID Trader = new(-823557242); // 1703325932 1502148822 40217214 -823557242
+  public static readonly PrefabGUID Trader = new(40217214); // 1703325932 1502148822 40217214 -823557242
   public static readonly PrefabGUID DuelCircle = new(-893175652);
   public static readonly PrefabGUID Inspect = new(1727016613);
 }
@@ -64,6 +67,36 @@ internal static class Buffs {
   public static readonly PrefabGUID ClosedVisualClue1 = new(647429443);
   public static readonly PrefabGUID ClosedVisualClue2 = new(-883762685);
   public static readonly PrefabGUID Ghost = new(-259674366);
+}
+
+internal static class Animations {
+  public static readonly Dictionary<PrefabGUID, float> All = new() {
+    { new(-235311655), 10f }, // Lean
+    { new(579955887), 15f }, // Pushups
+    { new(-124884505), 5f }, // Counting
+    { new(-2014797575), 4f }, // LookOut
+    { new(-1006286854), 15f }, // Situps
+    { new(192984794), 15f }, // Sleeping
+    { new(-1060344019), 5f } // Tinker
+  };
+
+  public static KeyValuePair<PrefabGUID, float> GetRandomAnimation() {
+    var _random = new Random();
+    int index = _random.Next(All.Count);
+    foreach (var pair in All) {
+      if (index-- == 0)
+        return pair;
+    }
+    return default;
+  }
+
+  public static void RemoveAnimations(Entity trader) {
+    foreach (var animation in All.Keys) {
+      if (BuffService.HasBuff(trader, animation)) {
+        BuffService.TryRemoveBuff(trader, animation);
+      }
+    }
+  }
 }
 
 internal static class TraderState {

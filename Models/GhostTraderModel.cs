@@ -47,6 +47,8 @@ internal class GhostTraderModel {
     StorageChest = storageChest;
     Trader = trader;
     Coffin = coffin;
+    RespawnTrader();
+    AlignToPlotRotation();
   }
 
   public void Destroy() {
@@ -163,6 +165,17 @@ internal class GhostTraderModel {
     });
   }
 
+  private void UnbindCoffinServant() {
+    Trader.With((ref ServantConnectedCoffin servantConnectedCoffin) => {
+      servantConnectedCoffin.CoffinEntity = NetworkedEntity.ServerEntity(Entity.Null);
+    });
+
+    Coffin.With((ref ServantCoffinstation coffinStation) => {
+      coffinStation.ConnectedServant = NetworkedEntity.ServerEntity(Entity.Null);
+      coffinStation.State = ServantCoffinState.Empty;
+    });
+  }
+
   private void DisableInteraction(Entity entity) {
     entity.HasWith((ref Interactable interactable) => {
       interactable.Disabled = true;
@@ -190,12 +203,15 @@ internal class GhostTraderModel {
     else if (forward.x < -threshold) rotationStep = 3;
 
     var targetRotation = quaternions[rotationStep];
-    var rotatedStoragePos = center + math.mul(targetRotation, StorageOffset);
+    int storageRotationStep = (rotationStep + TraderModel.StorageRotationOffset) % 4;
+    var storageRotation = quaternions[storageRotationStep];
+    var rotatedStoragePos = center + math.mul(storageRotation, StorageOffset);
+    var rotatedStandPos = center + math.mul(targetRotation, TraderAndStandOffset);
     var rotatedTraderPos = center + math.mul(targetRotation, TraderAndStandOffset);
 
     if (StorageChest.Exists()) {
       StorageChest.SetPosition(rotatedStoragePos);
-      RotateTile(StorageChest, rotationStep);
+      RotateTile(StorageChest, storageRotationStep);
     }
 
     if (Trader.Exists()) {
@@ -211,5 +227,20 @@ internal class GhostTraderModel {
 
   private void RotateTile(Entity tileEntity, int rotationStep) {
     TraderModel.RotateTile(tileEntity, rotationStep);
+  }
+
+  public void RespawnTrader() {
+    if (Trader != Entity.Null && Trader.Exists()) {
+      UnbindCoffinServant();
+      Trader.Destroy();
+    }
+
+    var center = Plot?.Position ?? Position;
+    var targetPos = center + TraderAndStandOffset;
+    Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, targetPos, 0f, 0f, -1f);
+
+    SetupGhostTrader();
+    BindCoffinServant();
+    AlignToPlotRotation();
   }
 }

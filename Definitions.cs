@@ -54,7 +54,7 @@ internal static class Spawnable {
   public static readonly PrefabGUID StandChest = new(279811010);
   public static readonly PrefabGUID StorageChest = new(-220201461);
   public static readonly PrefabGUID Coffin = new(723455393);
-  public static readonly PrefabGUID Trader = new(40217214); // 1703325932 1502148822 40217214 -823557242
+  public static readonly PrefabGUID Trader = Plugin.Settings.Get<int>("TraderPrefab") == 0 ? new(40217214) : new(Plugin.Settings.Get<int>("TraderPrefab")); // 1703325932 1502148822 40217214 -823557242
   public static readonly PrefabGUID DuelCircle = new(-893175652);
   public static readonly PrefabGUID Inspect = new(1727016613);
 }

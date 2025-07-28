@@ -77,13 +77,13 @@ internal class GhostTraderModel {
 
   public void Hide() {
     if (StorageChest != Entity.Null && StorageChest.Exists() && !BuffService.HasBuff(StorageChest, Buffs.Invisibility)) {
-      BuffService.TryApplyBuff(StorageChest, Buffs.Invisibility);
+      BuffService.TryApplyBuff(StorageChest, Buffs.Invisibility, -1);
     }
     if (Trader != Entity.Null && Trader.Exists() && !BuffService.HasBuff(Trader, Buffs.Invisibility)) {
-      BuffService.TryApplyBuff(Trader, Buffs.Invisibility);
+      BuffService.TryApplyBuff(Trader, Buffs.Invisibility, -1);
     }
     if (Coffin != Entity.Null && Coffin.Exists() && !BuffService.HasBuff(Coffin, Buffs.Invisibility)) {
-      BuffService.TryApplyBuff(Coffin, Buffs.Invisibility);
+      BuffService.TryApplyBuff(Coffin, Buffs.Invisibility, -1);
     }
   }
 
@@ -99,7 +99,7 @@ internal class GhostTraderModel {
     Coffin.SetId(Ids.GhostCoffin);
     Attach(Coffin);
     foreach (var permaBuffGuid in ServantPermaBuffs) {
-      BuffService.TryApplyBuff(Coffin, permaBuffGuid);
+      BuffService.TryApplyBuff(Coffin, permaBuffGuid, -1);
     }
     DisableInteraction(Coffin);
   }
@@ -118,7 +118,7 @@ internal class GhostTraderModel {
     });
 
     foreach (var permaBuffGuid in ServantPermaBuffs) {
-      BuffService.TryApplyBuff(StorageChest, permaBuffGuid);
+      BuffService.TryApplyBuff(StorageChest, permaBuffGuid, -1);
     }
     DisableInteraction(StorageChest);
   }
@@ -146,7 +146,7 @@ internal class GhostTraderModel {
     });
 
     foreach (var permaBuffGuid in ServantPermaBuffs) {
-      BuffService.TryApplyBuff(Trader, permaBuffGuid);
+      BuffService.TryApplyBuff(Trader, permaBuffGuid, -1);
     }
 
     DisableInteraction(Trader);

@@ -32,16 +32,18 @@ public class Plugin : BasePlugin {
     _harmony.PatchAll(Assembly.GetExecutingAssembly());
 
     Settings = new Settings(MyPluginInfo.PLUGIN_GUID, Instance);
-    LoadSettings();
     Database = new Database(MyPluginInfo.PLUGIN_GUID);
+
+    PrefabService.Initialize();
+
+    LoadSettings();
+    CommandRegistry.RegisterAll();
 
     if (GameSystems.Initialized) {
       TraderService.Initialize();
     } else {
       EventManager.OnInitialize += OnInitialize;
     }
-    LocalizationService.LoadPrefabNames();
-    CommandRegistry.RegisterAll();
   }
 
   public static void OnInitialize(object _, InitializeEventArgs args) {
@@ -61,6 +63,14 @@ public class Plugin : BasePlugin {
     LoadSettings();
   }
   public static void LoadSettings() {
+    Settings.Section("Trader")
+      .Add("TraderPrefab", 40217214, "Trader prefab GUID. IMPORTANT: Only use characters whose prefab name ends with _Servant (e.g., CHAR_Bandit_Bomber_Servant). Using any other type will brick your save and it will be lost!");
+
+    if (Settings.Get<int>("TraderPrefab") == 0 || !PrefabService.IsValidServant(Settings.Get<int>("TraderPrefab"))) {
+      Settings.Set("TraderPrefab", 40217214);
+      LogInstance.LogError("Trader prefab GUID is invalid or not a servant! Reverting to default.");
+    }
+
     Settings.Section("Plot Purchase")
       .Add("PrefabGUID", 0, "Item GUID required to claim a plot. Set to 0 to make plots free.\nUse item GUIDs from the game or community databases.")
       .Add("Amount", 0, "Number of items required to claim a plot.\nIf set to 0, plots can be claimed without any cost.");

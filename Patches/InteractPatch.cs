@@ -17,6 +17,7 @@ internal static class InteractPatch {
 
     foreach (var entity in query) {
       if (entity.GetPrefabGuid() != INTERACT_INSPECT) continue;
+
       var playerEntity = entity.Read<EntityOwner>().Owner;
 
       if (playerEntity.IsNull() || !playerEntity.Has<PlayerCharacter>()) continue;

@@ -16,12 +16,13 @@
     <PackageReference Include="BepInEx.Core" Version="6.0.0-be.691" IncludeAssets="compile" />
     <PackageReference Include="BepInEx.PluginInfoProps" Version="2.*" />
     <PackageReference Include="VRising.Unhollowed.Client" Version="1.1.*" />
-    <PackageReference Include="ScarletCore" Version="1.1.11" />
+    <PackageReference Include="ScarletCore" Version="1.*" />
     <PackageReference Include="VRising.VampireCommandFramework" Version="0.10.*" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Localization\ItemPrefabNames.json" />
+    <EmbeddedResource Include="Localization\ServantPrefabs.json" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

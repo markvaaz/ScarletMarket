@@ -105,7 +105,7 @@ internal class PlotModel {
   }
 
   public void MoveAreaTo(float3 position) {
-    // Align the plot to the building grid
+    // Align the plot to the tile grid
     var offset = -0.25f;
     var snapped = new float3(math.round(position.x * 2) / 2f, position.y, math.round(position.z * 2) / 2f);
     var rotation = Rotation;

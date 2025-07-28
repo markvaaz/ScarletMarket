@@ -320,8 +320,9 @@ internal class TraderModel {
       return false;
     }
 
-    InventoryService.RemoveItem(player.CharacterEntity, costItem.ItemType, costItem.Amount);
-    InventoryService.AddItem(StorageChest, costItem.ItemType, costItem.Amount);
+    // InventoryService.RemoveItem(player.CharacterEntity, costItem.ItemType, costItem.Amount);
+    // InventoryService.AddItem(StorageChest, costItem.ItemType, costItem.Amount);
+    InventoryService.TransferItem(player.CharacterEntity, StorageChest, costItem.ItemType, costItem.Amount);
     RemoveCostItem(slot + 7);
 
     if (itemResult == null || costItemResult == null) {

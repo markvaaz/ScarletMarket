@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using ProjectM;
-using ProjectM.CastleBuilding;
 using ScarletCore;
 using ScarletCore.Data;
 using ScarletCore.Services;
@@ -113,6 +112,8 @@ public static class AdminCommands {
       return;
     }
 
+    plot.Show();
+
     _selectedActions[player] = ActionScheduler.OncePerFrame((end) => {
       var inp = entityInput();
       if (TraderService.WillOverlapWithExistingPlot(inp.AimPosition, plot)) {
@@ -123,13 +124,13 @@ public static class AdminCommands {
         end();
         _selectedActions.Remove(player);
         ctx.Reply("Plot placed.".FormatSuccess());
+        plot.Hide();
       } else if (inp.State.InputsDown == SyncedButtonInputAction.OffensiveSpell) {
         plot.Rotate();
       }
     });
 
     ctx.Reply($"Plot attached to you, please move it to the desired position.".FormatSuccess());
-    ctx.Reply($"Use ~.market place~ to detach the plot.".Format());
   }
 
   [Command("place", adminOnly: true)]
@@ -144,6 +145,7 @@ public static class AdminCommands {
         ctx.Reply("~Cannot move plot:~ would block access to an existing one.".FormatError());
         return;
       }
+      _selectedPlots.Remove(player);
       plot.MovePlotTo(player.Position);
       ctx.Reply("Plot placed.".FormatSuccess());
     } else {

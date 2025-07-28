@@ -16,7 +16,7 @@ internal static class ItemSearchService {
     var searchTermLower = searchTerm.ToLowerInvariant();
     var searchTermNoSpaces = searchTermLower.Replace(" ", "");
 
-    foreach (var kvp in LocalizationService.PrefabNames) {
+    foreach (var kvp in PrefabService.ItemPrefabNames) {
       var itemName = kvp.Value;
       var itemNameLower = itemName.ToLowerInvariant().Replace("(", "").Replace(")", "").Replace(" ", "");
 
@@ -51,7 +51,7 @@ internal static class ItemSearchService {
       return null;
     }
 
-    foreach (var kvp in LocalizationService.PrefabNames) {
+    foreach (var kvp in PrefabService.ItemPrefabNames) {
       if (kvp.Value.ToLowerInvariant().Replace("(", "").Replace(")", "").Replace(" ", "").Equals(exactName.ToLowerInvariant().Replace("(", "").Replace(")", "").Replace(" ", ""), StringComparison.OrdinalIgnoreCase)) {
         return new ItemSearchResult {
           PrefabGUID = new PrefabGUID(kvp.Key),
@@ -71,7 +71,7 @@ internal static class ItemSearchService {
 
 
   public static ItemSearchResult? FindByPrefabId(int prefabId) {
-    if (LocalizationService.PrefabNames.TryGetValue(prefabId, out var name)) {
+    if (PrefabService.ItemPrefabNames.TryGetValue(prefabId, out var name)) {
       return new ItemSearchResult {
         PrefabGUID = new PrefabGUID(prefabId),
         Name = name,
@@ -84,7 +84,7 @@ internal static class ItemSearchService {
   public static List<ItemSearchResult> GetAllItems() {
     var results = new List<ItemSearchResult>();
 
-    foreach (var kvp in LocalizationService.PrefabNames) {
+    foreach (var kvp in PrefabService.ItemPrefabNames) {
       results.Add(new ItemSearchResult {
         PrefabGUID = new PrefabGUID(kvp.Key),
         Name = kvp.Value,

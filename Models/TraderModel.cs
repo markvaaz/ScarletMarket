@@ -90,7 +90,7 @@ internal class TraderModel {
 
     ClearAllStateBuffs();
 
-    BuffService.TryApplyBuff(Trader, newState);
+    BuffService.TryApplyBuff(Trader, newState, -1);
 
     State = newState;
 
@@ -98,9 +98,9 @@ internal class TraderModel {
       MakeStandPrivate();
 
       if (!BuffService.HasBuff(Trader, Buffs.ClosedVisualClue1))
-        BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue1);
+        BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue1, -1);
       // if (!BuffService.HasBuff(Trader, Buffs.ClosedVisualClue2))
-      //   BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue2);
+      //   BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue2, -1);
 
       SetTraderName($"{Owner.Name}'s Shop (Closed)");
     } else {
@@ -474,7 +474,7 @@ internal class TraderModel {
       }
       BlockSlots(Stand, 14, 21);
     }, 15);
-    BuffService.TryApplyBuff(Stand, Buffs.Invisibility);
+    BuffService.TryApplyBuff(Stand, Buffs.Invisibility, -1);
   }
 
   private void SetupTrader() {
@@ -505,7 +505,7 @@ internal class TraderModel {
     });
 
     foreach (var permaBuffGuid in ServantPermaBuffs) {
-      BuffService.TryApplyBuff(Trader, permaBuffGuid);
+      BuffService.TryApplyBuff(Trader, permaBuffGuid, -1);
     }
   }
 

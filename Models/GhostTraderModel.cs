@@ -19,7 +19,7 @@ internal class GhostTraderModel {
   public static float3 StorageOffset => TraderModel.StorageOffset;
   public static float3 TraderAndStandOffset => TraderModel.TraderAndStandOffset;
   public static float3 TraderLookAtOffset => TraderModel.TraderLookAtOffset;
-  public string Name = "Empty Plot";
+  public string Name = Plugin.Settings.Get<string>("EmptyPlotName");
 
   private readonly PrefabGUID[] ServantPermaBuffs = [
     Buffs.Invulnerable,

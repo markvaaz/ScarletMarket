@@ -18,25 +18,6 @@ public static class AdminCommands {
   private static readonly Dictionary<PlayerData, PlotModel> _selectedPlots = [];
   private static readonly Dictionary<PlayerData, ActionId> _selectedActions = [];
 
-  [Command("search", adminOnly: true)]
-  public static void Search(ChatCommandContext ctx, string searchTerm) {
-    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
-      ctx.Reply("Couldn't find your player data.".FormatError());
-      return;
-    }
-
-    var results = ItemSearchService.SearchByName(searchTerm, 10);
-
-    if (results.Count == 0) {
-      ctx.Reply("No items found matching your search.".FormatError());
-      return;
-    }
-
-    foreach (var result in results) {
-      ctx.Reply($"Found item: ~{result.Name}~ (GUID: {result.PrefabGUID})".FormatSuccess());
-    }
-  }
-
   [Command("create plot", adminOnly: true)]
   public static void CreatePlot(ChatCommandContext ctx) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {

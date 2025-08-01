@@ -231,10 +231,11 @@ internal static class TraderService {
     return null;
   }
 
-  public static bool TryGetPlot(float3 position, out PlotModel plot) {
+  public static bool TryGetPlot(float3 position, out PlotModel plot, PlotModel exclude = null) {
     plot = null;
 
     foreach (var p in Plots) {
+      if (exclude != null && p == exclude) continue;
       if (p.IsInside(position)) {
         plot = p;
         return true;

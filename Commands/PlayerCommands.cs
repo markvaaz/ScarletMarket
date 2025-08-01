@@ -1,8 +1,8 @@
 using ScarletCore.Services;
 using ScarletCore.Utils;
 using ScarletMarket.Services;
-using Stunlock.Core;
 using VampireCommandFramework;
+using System.Text;
 
 namespace ScarletMarket.Commands;
 
@@ -124,5 +124,46 @@ public static class PlayerCommands {
 
     ctx.Reply($"Price set: {item.Name} x{amount}".FormatSuccess());
     ctx.Reply("Ready to open? Use ~.market open~ to start selling!".Format());
+  }
+
+  [Command("rename", "Change your shop's name")]
+  public static void Rename(ChatCommandContext ctx, string newName) {
+    if (!Plugin.Settings.Get<bool>("AllowCustomShopNames")) {
+      ctx.Reply("Custom shop names are disabled.".FormatError());
+      return;
+    }
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Player not found.".FormatError());
+      return;
+    }
+
+    var trader = TraderService.GetTrader(player.PlatformId);
+
+    if (trader == null) {
+      ctx.Reply("You don't have a shop yet! Use ~.market claim~ to get started.".FormatError());
+      return;
+    }
+
+    if (string.IsNullOrWhiteSpace(newName)) {
+      ctx.Reply("Shop name cannot be empty!".FormatError());
+      return;
+    }
+
+    if (newName.Contains('(') || newName.Contains(')')) {
+      ctx.Reply("Shop name cannot contain parentheses ~()~. They are reserved for shop status.".FormatError());
+      return;
+    }
+
+    var byteCount = Encoding.UTF8.GetByteCount($"{newName} ({CLOSED_TEXT})");
+    if (byteCount > 50) {
+      ctx.Reply($"Shop name is too long! Try a shorter name.".FormatError());
+      return;
+    }
+
+    if (trader.TrySetCustomName(newName)) {
+      ctx.Reply($"Shop renamed to: ~{newName}~".FormatSuccess());
+    } else {
+      ctx.Reply("Failed to rename shop. Please try a different name.".FormatError());
+    }
   }
 }

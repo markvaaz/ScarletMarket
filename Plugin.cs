@@ -63,6 +63,11 @@ public class Plugin : BasePlugin {
     LoadSettings();
   }
   public static void LoadSettings() {
+    Settings.Section("General")
+      .Add("EmptyPlotName", "Empty Plot", "Default name for empty trader plots.\nThis will be used when a player has not set a custom name for their shop.")
+      .Add("AllowCustomShopNames", true, "Allow players to set custom shop names.\nIf disabled, shops will use the default name based on the trader's name.")
+      .Add("ClosedText", "Closed", "Text to append when a trader shop is closed.\nThis text will be added to the end of the shop name when it is not ready for trading.");
+
     Settings.Section("Trader")
       .Add("TraderPrefab", 40217214, "Trader prefab GUID. IMPORTANT: Only use characters whose prefab name ends with _Servant (e.g., CHAR_Bandit_Bomber_Servant). Using any other type will brick your save and it will be lost!");
 

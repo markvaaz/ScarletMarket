@@ -15,6 +15,7 @@ internal static class Constants {
   public static readonly PrefabGUID BLOCK_SLOT_ITEM = new(1488205677); // -696770536
   public static readonly PrefabGUID SCT_PREFAB = new(-1404311249);
   public static readonly PrefabGUID INTERACT_INSPECT = new(222103866);
+  public static readonly string CLOSED_TEXT = Plugin.Settings.Get<string>("ClosedText");
 }
 
 internal static class GameData {

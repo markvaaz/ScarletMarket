@@ -1,6 +1,7 @@
 using ScarletCore.Services;
 using ScarletCore.Utils;
 using ScarletMarket.Services;
+using Stunlock.Core;
 using VampireCommandFramework;
 
 namespace ScarletMarket.Commands;
@@ -103,7 +104,7 @@ public static class PlayerCommands {
       return;
     }
 
-    if (items.Count > 1 && item == null) {
+    if (items.Count > 1 && item.PrefabGUID.GuidHash == 0) {
       foreach (var result in items) {
         ctx.Reply($"- {result.Name}".Format());
       }
@@ -112,12 +113,16 @@ public static class PlayerCommands {
       return;
     }
 
-    if (!trader.TryAddCostItem(item.Value.PrefabGUID, amount)) {
+    if (items.Count == 1 && item.PrefabGUID.GuidHash == 0) {
+      item = items[0];
+    }
+
+    if (!trader.TryAddCostItem(item.PrefabGUID, amount)) {
       ctx.Reply("You can't use the same item as both product and payment!".FormatError());
       return;
     }
 
-    ctx.Reply($"Price set: {item.Value.Name} x{amount}".FormatSuccess());
+    ctx.Reply($"Price set: {item.Name} x{amount}".FormatSuccess());
     ctx.Reply("Ready to open? Use ~.market open~ to start selling!".Format());
   }
 }

@@ -14,7 +14,7 @@ internal static class ItemSearchService {
 
     var results = new List<ItemSearchResult>();
     var alreadyAdded = new HashSet<string>();
-    var searchTermLower = searchTerm.ToLowerInvariant();
+    var searchTermLower = searchTerm.ToLowerInvariant().Replace("'", "");
     var searchTermNoSpaces = searchTermLower.Replace(" ", "");
 
     foreach (var kvp in PrefabService.ItemPrefabNames) {
@@ -49,7 +49,7 @@ internal static class ItemSearchService {
     var (Name, Category, Tier) = ParseItemName(itemName);
 
     var itemNameNoCategory = Regex.Replace(itemName, "\\s*\\([^)]*\\)", "");
-    var itemNameLower = itemNameNoCategory.ToLowerInvariant().Replace(" ", "");
+    var itemNameLower = itemNameNoCategory.ToLowerInvariant().Replace(" ", "").Replace("'", "");
 
     if (itemNameLower.Contains(searchTermLower)) {
       return true;
@@ -101,8 +101,8 @@ internal static class ItemSearchService {
 
   private static List<string> GenerateSearchVariations(string name, string category, string tier) {
     var variations = new List<string>();
-    var nameNormalized = name.ToLowerInvariant().Replace(" ", "");
-    var categoryNormalized = category.ToLowerInvariant().Replace(" ", "");
+    var nameNormalized = name.ToLowerInvariant().Replace(" ", "").Replace("'", "");
+    var categoryNormalized = category.ToLowerInvariant().Replace(" ", "").Replace("'", "");
 
     if (!string.IsNullOrEmpty(category)) {
       variations.Add(nameNormalized + categoryNormalized);
@@ -130,13 +130,13 @@ internal static class ItemSearchService {
       return default;
     }
 
-    var exactNameLower = exactName.ToLowerInvariant();
+    var exactNameLower = exactName.ToLowerInvariant().Replace("'", "");
     var exactNameNoSpaces = exactNameLower.Replace(" ", "");
 
     foreach (var kvp in PrefabService.ItemPrefabNames) {
       var itemName = kvp.Value;
 
-      var itemNameNoParentheses = itemName.ToLowerInvariant().Replace("(", "").Replace(")", "").Replace(" ", "");
+      var itemNameNoParentheses = itemName.ToLowerInvariant().Replace("(", "").Replace(")", "").Replace(" ", "").Replace("'", "");
       if (itemNameNoParentheses.Equals(exactNameNoSpaces, StringComparison.OrdinalIgnoreCase)) {
         return new ItemSearchResult {
           PrefabGUID = new PrefabGUID(kvp.Key),

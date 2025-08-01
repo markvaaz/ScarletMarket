@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using ProjectM;
 using ProjectM.Network;
+using ProjectM.Shared;
 using ProjectM.Tiles;
 using ScarletCore;
 using ScarletCore.Data;
@@ -68,16 +69,16 @@ internal class TraderModel {
   }
 
   public void Destroy() {
-    if (StorageChest != Entity.Null && StorageChest.Exists()) {
+    if (StorageChest.Exists()) {
       StorageChest.Destroy();
     }
-    if (Stand != Entity.Null && Stand.Exists()) {
+    if (Stand.Exists()) {
       Stand.Destroy();
     }
-    if (Trader != Entity.Null && Trader.Exists()) {
+    if (Trader.Exists()) {
       Trader.Destroy();
     }
-    if (Coffin != Entity.Null && Coffin.Exists()) {
+    if (Coffin.Exists()) {
       Coffin.Destroy();
     }
   }
@@ -401,8 +402,42 @@ internal class TraderModel {
     var slotIndex = response.Slot;
     var items = InventoryService.GetInventoryItems(entity);
     var item = items[slotIndex];
+    var itemEntity = item.ItemEntity.GetEntityOnServer();
     item.MaxAmountOverride = maxAmount;
     item.Amount = amount;
+
+    if (itemEntity != Entity.Null) {
+      if (itemEntity.Has<JewelArithmeticModification>()) {
+        if (itemEntity.TryGetBuffer<JewelArithmeticModification>(out var buffer)) {
+          buffer.Clear();
+        }
+      }
+
+      if (itemEntity.Has<RecipeRequirementBuffer>()) {
+        if (itemEntity.TryGetBuffer<RecipeRequirementBuffer>(out var buffer)) {
+          buffer.Clear();
+        }
+      }
+
+      if (itemEntity.Has<LegendaryItemInstance>()) {
+        itemEntity.With((ref LegendaryItemInstance inst) => {
+          inst = default;
+        });
+      }
+
+      if (itemEntity.Has<LegendaryItemGeneratorTemplate>()) {
+        itemEntity.With((ref LegendaryItemGeneratorTemplate template) => {
+          template = default;
+        });
+      }
+
+      if (itemEntity.Has<LegendaryItemSpellModSetComponent>()) {
+        itemEntity.With((ref LegendaryItemSpellModSetComponent comp) => {
+          comp = default;
+        });
+      }
+    }
+
     items[slotIndex] = item;
   }
 

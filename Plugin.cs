@@ -69,7 +69,7 @@ public class Plugin : BasePlugin {
       .Add("ClosedText", "Closed", "Text to append when a trader shop is closed.\nThis text will be added to the end of the shop name when it is not ready for trading.");
 
     Settings.Section("Trader")
-      .Add("TraderPrefab", 40217214, "Trader prefab GUID. IMPORTANT: Only use characters whose prefab name ends with _Servant (e.g., CHAR_Bandit_Bomber_Servant). Using any other type will brick your save and it will be lost!");
+      .Add("TraderPrefab", 40217214, "Trader prefab GUID. \nIMPORTANT: Only use characters whose prefab name ends with _Servant (e.g., CHAR_Bandit_Bomber_Servant). Using any other will revert to the default trader prefab.");
 
     if (Settings.Get<int>("TraderPrefab") == 0 || !PrefabService.IsValidServant(Settings.Get<int>("TraderPrefab"))) {
       Settings.Set("TraderPrefab", 40217214);

@@ -19,7 +19,10 @@ using Unity.Transforms;
 namespace ScarletMarket.Models;
 
 internal class TraderModel {
-  public string Name { get; private set; }
+  public string Name {
+    get => Coffin.Read<ServantCoffinstation>().ServantName.ToString();
+    private set => SetTraderName(value);
+  }
   public Entity StorageChest { get; private set; }
   public Entity Stand { get; private set; }
   public Entity Trader { get; private set; }
@@ -44,7 +47,6 @@ internal class TraderModel {
   public TraderModel(PlayerData player, PlotModel plot) {
     Owner = player;
     Plot = plot;
-    Name = $"{Owner.Name}'s Shop";
     StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f, Owner.UserEntity);
     Stand = UnitSpawnerService.ImmediateSpawn(Spawnable.StandChest, Position + TraderAndStandOffset, 0f, 0f, -1f);
     Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f, Owner.UserEntity);
@@ -55,12 +57,12 @@ internal class TraderModel {
     SetupTrader();
     SetupStand();
     BindCoffinServant();
+    Name = $"{Owner.Name}'s Shop ({CLOSED_TEXT})";
     AlignToPlotRotation();
   }
 
   public TraderModel(PlayerData player, Entity storageChest, Entity stand, Entity trader, Entity coffin) {
     Owner = player;
-    Name = $"{Owner.Name}'s Shop";
     StorageChest = storageChest;
     Stand = stand;
     Trader = trader;
@@ -95,6 +97,8 @@ internal class TraderModel {
 
     State = newState;
 
+    var baseName = SanitizeName(Name);
+
     if (State != TraderState.Ready) {
       MakeStandPrivate();
 
@@ -103,13 +107,38 @@ internal class TraderModel {
       // if (!BuffService.HasBuff(Trader, Buffs.ClosedVisualClue2))
       //   BuffService.TryApplyBuff(Trader, Buffs.ClosedVisualClue2, -1);
 
-      SetTraderName($"{Owner.Name}'s Shop (Closed)");
+      SetTraderName($"{baseName} ({CLOSED_TEXT})");
     } else {
       MakeStandPublic();
-      SetTraderName($"{Owner.Name}'s Shop");
+      SetTraderName(baseName);
       BuffService.TryRemoveBuff(Trader, Buffs.ClosedVisualClue1);
       // BuffService.TryRemoveBuff(Trader, Buffs.ClosedVisualClue2);
     }
+  }
+
+  public string SanitizeName(string name) {
+    if (string.IsNullOrWhiteSpace(name)) return string.Empty;
+    return System.Text.RegularExpressions.Regex.Replace(name, @"\s*\([^)]*\)", "").Trim();
+  }
+
+  public bool TrySetCustomName(string newName) {
+    if (string.IsNullOrWhiteSpace(newName)) {
+      return false;
+    }
+
+    var sanitizedName = System.Text.RegularExpressions.Regex.Replace(newName, @"[()]", "").Trim();
+
+    if (string.IsNullOrWhiteSpace(sanitizedName)) {
+      return false;
+    }
+
+    if (State != TraderState.Ready) {
+      SetTraderName($"{sanitizedName} ({CLOSED_TEXT})");
+    } else {
+      SetTraderName(sanitizedName);
+    }
+
+    return true;
   }
 
   public PrefabGUID GetCurrentState() {
@@ -284,7 +313,7 @@ internal class TraderModel {
 
     var slot = noCostItem.Value;
     SetState(TraderState.ReceivedCost);
-    AddWithMaxAmount(Stand, slot + 7, costItem, costAmount, costAmount);
+    AddCostWithMaxAmount(Stand, slot + 7, costItem, costAmount, costAmount);
     ForceAllSlotsMaxAmount();
 
     return true;
@@ -402,39 +431,36 @@ internal class TraderModel {
     var slotIndex = response.Slot;
     var items = InventoryService.GetInventoryItems(entity);
     var item = items[slotIndex];
+    item.MaxAmountOverride = maxAmount;
+    item.Amount = amount;
+    items[slotIndex] = item;
+  }
+
+  public void AddCostWithMaxAmount(Entity entity, int slot, PrefabGUID prefabGUID, int amount, int maxAmount) {
+    var response = GameSystems.ServerGameManager.TryAddInventoryItem(entity, prefabGUID, 1, new(slot), false);
+    var slotIndex = response.Slot;
+    var items = InventoryService.GetInventoryItems(entity);
+    var item = items[slotIndex];
     var itemEntity = item.ItemEntity.GetEntityOnServer();
     item.MaxAmountOverride = maxAmount;
     item.Amount = amount;
 
     if (itemEntity != Entity.Null) {
-      if (itemEntity.Has<JewelArithmeticModification>()) {
-        if (itemEntity.TryGetBuffer<JewelArithmeticModification>(out var buffer)) {
-          buffer.Clear();
-        }
-      }
-
-      if (itemEntity.Has<RecipeRequirementBuffer>()) {
-        if (itemEntity.TryGetBuffer<RecipeRequirementBuffer>(out var buffer)) {
-          buffer.Clear();
-        }
+      Log.Components(itemEntity);
+      if (itemEntity.Has<JewelInstance>()) {
+        itemEntity.Write(new JewelInstance());
       }
 
       if (itemEntity.Has<LegendaryItemInstance>()) {
-        itemEntity.With((ref LegendaryItemInstance inst) => {
-          inst = default;
-        });
+        itemEntity.Write(new LegendaryItemInstance());
       }
 
       if (itemEntity.Has<LegendaryItemGeneratorTemplate>()) {
-        itemEntity.With((ref LegendaryItemGeneratorTemplate template) => {
-          template = default;
-        });
+        itemEntity.Write(new LegendaryItemGeneratorTemplate());
       }
 
       if (itemEntity.Has<LegendaryItemSpellModSetComponent>()) {
-        itemEntity.With((ref LegendaryItemSpellModSetComponent comp) => {
-          comp = default;
-        });
+        itemEntity.Write(new LegendaryItemSpellModSetComponent());
       }
     }
 
@@ -457,8 +483,7 @@ internal class TraderModel {
   }
 
   public void SetTraderName(string name) {
-    Name = name;
-    Coffin.AddWith((ref ServantCoffinstation coffinStation) => {
+    Coffin.With((ref ServantCoffinstation coffinStation) => {
       coffinStation.ServantName = new FixedString64Bytes(name);
     });
   }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using ProjectM;
 using ScarletCore;
 using ScarletCore.Data;
@@ -112,8 +113,6 @@ public static class AdminCommands {
       return;
     }
 
-    plot.Show();
-
     _selectedActions[player] = ActionScheduler.OncePerFrame((end) => {
       var inp = entityInput();
       if (TraderService.WillOverlapWithExistingPlot(inp.AimPosition, plot)) {
@@ -124,11 +123,49 @@ public static class AdminCommands {
         end();
         _selectedActions.Remove(player);
         ctx.Reply("Plot placed.".FormatSuccess());
-        plot.Hide();
       } else if (inp.State.InputsDown == SyncedButtonInputAction.OffensiveSpell) {
         plot.Rotate();
       }
     });
+
+    ActionScheduler.Delayed(() => {
+      ActionScheduler.CancelAction(_selectedActions[player]);
+    }, 180);
+
+    ctx.Reply($"Plot attached to you, please move it to the desired position.".FormatSuccess());
+  }
+
+  [Command("forcemove", adminOnly: true)]
+  public static void ForceMovePlot(ChatCommandContext ctx) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    EntityInput entityInput() => player.CharacterEntity.Read<EntityInput>();
+
+    if (!_selectedPlots.TryGetValue(player, out var plot) && !TraderService.TryGetPlot(entityInput().AimPosition, out plot)) {
+      ctx.Reply("You need to aim at a plot to move it.".FormatError());
+      return;
+    }
+
+    _selectedActions[player] = ActionScheduler.OncePerFrame((end) => {
+      var inp = entityInput();
+      var existingPlot = TraderService.TryGetPlot(inp.AimPosition, out _, plot);
+      if (existingPlot) return;
+      plot.MovePlotTo(inp.AimPosition);
+      if (inp.State.InputsDown == SyncedButtonInputAction.Primary) {
+        end();
+        _selectedActions.Remove(player);
+        ctx.Reply("Plot placed.".FormatSuccess());
+      } else if (inp.State.InputsDown == SyncedButtonInputAction.OffensiveSpell) {
+        plot.Rotate();
+      }
+    });
+
+    ActionScheduler.Delayed(() => {
+      ActionScheduler.CancelAction(_selectedActions[player]);
+    }, 180);
 
     ctx.Reply($"Plot attached to you, please move it to the desired position.".FormatSuccess());
   }
@@ -163,8 +200,9 @@ public static class AdminCommands {
 
     foreach (var plot in plots) {
       plot.ShowPlot();
-      ctx.Reply($"Showing plot at {plot.Position} with radius {plot.Radius}.".FormatSuccess());
     }
+
+    ctx.Reply($"Showing {plots.Count} plots.".FormatSuccess());
   }
 
   [Command("hideradius", adminOnly: true)]
@@ -177,8 +215,9 @@ public static class AdminCommands {
 
     foreach (var plot in plots) {
       plot.HidePlot();
-      ctx.Reply($"Hiding plot at {plot.Position}.".FormatSuccess());
     }
+
+    ctx.Reply($"Hiding {plots.Count} plots.".FormatSuccess());
   }
 
   [Command("claimaccess", adminOnly: true)]
@@ -203,7 +242,8 @@ public static class AdminCommands {
     trader.Stand.SetTeam(player.CharacterEntity);
     trader.StorageChest.SetTeam(player.CharacterEntity);
 
-    ctx.Reply($"You now have access to the shop at {plot.Position}.".FormatSuccess());
+    ctx.Reply($"You now have access to the shop {trader.Name}.".FormatSuccess());
+    ctx.Reply($"Don't forget to use ~.market revokeaccess~ to give access back to the owner.".FormatSuccess());
   }
 
   [Command("revokeaccess", adminOnly: true)]
@@ -214,7 +254,6 @@ public static class AdminCommands {
     }
 
     if (!TraderService.TryGetPlot(player.Position, out var plot)) {
-
       return;
     }
 
@@ -234,7 +273,7 @@ public static class AdminCommands {
     trader.StorageChest.SetTeam(trader.Owner.CharacterEntity);
 
     // given acces back to the owner
-    ctx.Reply($"Access revoked! Shop is now private to its owner.".FormatSuccess());
+    ctx.Reply($"Access revoked! Shop {trader.Name} is now back to the owner.".FormatSuccess());
   }
 
   [Command("remove shop", adminOnly: true)]
@@ -323,6 +362,53 @@ public static class AdminCommands {
 
     TraderService.ForceRemoveTrader(trader.Owner);
     ctx.Reply($"Shop {trader.Name} has been forcefully removed from the plot.".FormatSuccess());
+  }
+
+  [Command("forcerename", "Change your shop's name", adminOnly: true)]
+  public static void Rename(ChatCommandContext ctx, string newName) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Player not found.".FormatError());
+      return;
+    }
+
+    if (!TraderService.TryGetPlot(player.Position, out var plot)) {
+      ctx.Reply("You need to be inside a plot to rename a shop.".FormatError());
+      return;
+    }
+
+    if (plot.Trader == null) {
+      ctx.Reply("No shop found in this plot.".FormatError());
+      return;
+    }
+
+    var trader = plot.Trader;
+
+    if (trader == null) {
+      ctx.Reply("You don't have a shop yet! Use ~.market claim~ to get started.".FormatError());
+      return;
+    }
+
+    if (string.IsNullOrWhiteSpace(newName)) {
+      ctx.Reply("Shop name cannot be empty!".FormatError());
+      return;
+    }
+
+    if (newName.Contains('(') || newName.Contains(')')) {
+      ctx.Reply("Shop name cannot contain parentheses ~()~. They are reserved for shop status.".FormatError());
+      return;
+    }
+
+    var byteCount = Encoding.UTF8.GetByteCount($"{newName} ({CLOSED_TEXT})");
+    if (byteCount > 50) {
+      ctx.Reply($"Shop name is too long! Try a shorter name.".FormatError());
+      return;
+    }
+
+    if (trader.TrySetCustomName(newName)) {
+      ctx.Reply($"Shop renamed to: ~{newName}~".FormatSuccess());
+    } else {
+      ctx.Reply("Failed to rename shop. Please try a different name.".FormatError());
+    }
   }
 
   [Command("rotate", adminOnly: true)]

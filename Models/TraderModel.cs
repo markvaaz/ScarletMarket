@@ -230,6 +230,7 @@ internal class TraderModel {
       SendErrorSCT(SCTMessages.AlreadyAssigned);
       return;
     }
+
     SendSucessSCT(SCTMessages.Close);
     SetState(TraderState.WaitingForItem);
   }
@@ -320,6 +321,11 @@ internal class TraderModel {
   }
 
   public bool TryBuyItem(PlayerData player, int slot) {
+    if (InventoryService.IsFull(player.CharacterEntity)) {
+      SendMessage(player, "Your inventory is full.");
+      return false;
+    }
+
     if (!IsValidSlot(slot)) {
       SendMessage(player, "This item isn't for sale.");
       return false;

@@ -81,7 +81,7 @@ public class Plugin : BasePlugin {
       .Add("Amount", 0, "Number of items required to claim a plot.\nIf set to 0, plots can be claimed without any cost.");
 
     Settings.Section("Trader Timeout")
-      .Add("TraderTimeoutEnabled", true, "Enable/disable the trader timeout system entirely.\nWhen disabled, trader shops will never be automatically removed.")
+      .Add("TraderTimeoutEnabled", false, "Enable/disable the trader timeout system entirely.\nWhen disabled, trader shops will never be automatically removed.")
       .Add("MaxInactiveDays", 15, "Maximum days a player can be offline before their trader shop is automatically removed.\nWarning: All items in the shop and storage will be permanently lost!")
       .Add("RemoveEmptyTradersOnStartup", true, "Clean up empty trader shops when the server starts.\nOnly removes shops with no items in both display and storage areas.");
   }

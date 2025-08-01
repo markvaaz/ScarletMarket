@@ -1,4 +1,5 @@
 using ProjectM;
+using ProjectM.Gameplay;
 using ScarletCore;
 using ScarletCore.Services;
 using ScarletCore.Systems;
@@ -10,7 +11,6 @@ using Unity.Transforms;
 namespace ScarletMarket.Models;
 
 internal class PlotModel {
-
   public Entity Entity { get; set; } = Entity.Null;
   public Entity Inspect { get; private set; } = Entity.Null;
   public float3 Position => Entity.Position();
@@ -34,8 +34,9 @@ internal class PlotModel {
       follower.Followed._Value = Entity;
     });
 
+    Inspect.Write(new Script_InspectTarget_Data());
+
     MoveAreaTo(position);
-    // Force Entity rotation to point north
     Entity.Write(new Rotation { Value = quaternion.identity });
     GhostPlaceholder = new GhostTraderModel(this);
     SetRadius(0);

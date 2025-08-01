@@ -34,8 +34,6 @@ internal class PlotModel {
       follower.Followed._Value = Entity;
     });
 
-    Inspect.Write(new Script_InspectTarget_Data());
-
     MoveAreaTo(position);
     Entity.Write(new Rotation { Value = quaternion.identity });
     GhostPlaceholder = new GhostTraderModel(this);
@@ -51,6 +49,7 @@ internal class PlotModel {
     }
     Entity = entity;
     Inspect = inspectEntity;
+    Inspect.Write(new Script_InspectTarget_Data());
     MoveAreaTo(Position);
     SetRadius(0);
   }

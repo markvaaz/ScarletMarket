@@ -440,7 +440,7 @@ public static class AdminCommands {
     ctx.Reply($"Removed {count} empty shops.".FormatSuccess());
   }
 
-  [Command("get inactive", adminOnly: true)]
+  [Command("getinactive", adminOnly: true)]
   public static void GetInactiveShops(ChatCommandContext ctx, int days) {
     int count = 0;
     var traders = TraderService.TraderEntities.Values;

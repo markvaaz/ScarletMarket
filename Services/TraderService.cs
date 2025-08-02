@@ -38,8 +38,6 @@ internal static class TraderService {
   }
 
   public static void Initialize() {
-    SetContainerSize(Spawnable.StorageChest, 63);
-    SetContainerSize(Spawnable.StandChest, 35);
     RegisterOnLoad();
     RemoveInactiveTraders();
     ActionScheduler.Repeating(SetRandomAnimation, 20f);
@@ -411,23 +409,6 @@ internal static class TraderService {
       }
     }
     return count;
-  }
-
-  public static void SetContainerSize(PrefabGUID prefabGUID, int slots) {
-    if (!PrefabGuidToEntityMap.TryGetValue(prefabGUID, out var prefabEntity)) {
-      Log.Error($"Failed to find prefab for GUID: {prefabGUID.GuidHash}");
-      return;
-    }
-
-    if (prefabEntity.TryGetBuffer<InventoryInstanceElement>(out var instanceBuffer)) {
-      InventoryInstanceElement inventoryInstanceElement = instanceBuffer[0];
-
-      inventoryInstanceElement.RestrictedCategory = (long)ItemCategory.ALL;
-      inventoryInstanceElement.Slots = slots;
-      inventoryInstanceElement.MaxSlots = slots;
-
-      instanceBuffer[0] = inventoryInstanceElement;
-    }
   }
 
   public static void ClearAll() {

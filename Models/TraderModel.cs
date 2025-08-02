@@ -47,8 +47,14 @@ internal class TraderModel {
   public TraderModel(PlayerData player, PlotModel plot) {
     Owner = player;
     Plot = plot;
+    var oldStandSize = GetContainerSize(Spawnable.StandChest);
+    var oldStorageSize = GetContainerSize(Spawnable.StorageChest);
+    SetContainerSize(Spawnable.StorageChest, 63);
+    SetContainerSize(Spawnable.StandChest, 35);
     StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f, Owner.UserEntity);
     Stand = UnitSpawnerService.ImmediateSpawn(Spawnable.StandChest, Position + TraderAndStandOffset, 0f, 0f, -1f);
+    SetContainerSize(Spawnable.StandChest, oldStandSize);
+    SetContainerSize(Spawnable.StorageChest, oldStorageSize);
     Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f, Owner.UserEntity);
     Coffin = UnitSpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f, Owner.UserEntity);
     SetState(TraderState.WaitingForItem);
@@ -83,6 +89,35 @@ internal class TraderModel {
     if (Coffin.Exists()) {
       Coffin.Destroy();
     }
+  }
+
+  public static void SetContainerSize(PrefabGUID prefabGUID, int slots) {
+    if (!PrefabGuidToEntityMap.TryGetValue(prefabGUID, out var prefabEntity)) {
+      Log.Error($"Failed to find prefab for GUID: {prefabGUID.GuidHash}");
+      return;
+    }
+
+    if (!prefabEntity.TryGetBuffer<InventoryInstanceElement>(out var instanceBuffer))
+      return;
+
+    var inventoryInstanceElement = instanceBuffer[0];
+    inventoryInstanceElement.RestrictedCategory = (long)ItemCategory.ALL;
+    inventoryInstanceElement.Slots = slots;
+    inventoryInstanceElement.MaxSlots = slots;
+    instanceBuffer[0] = inventoryInstanceElement;
+  }
+
+  public static int GetContainerSize(PrefabGUID prefabGUID) {
+    if (!PrefabGuidToEntityMap.TryGetValue(prefabGUID, out var prefabEntity)) {
+      Log.Error($"Failed to find prefab for GUID: {prefabGUID.GuidHash}");
+      return -1;
+    }
+
+    if (prefabEntity.TryGetBuffer<InventoryInstanceElement>(out var instanceBuffer)) {
+      return instanceBuffer[0].MaxSlots;
+    }
+
+    return -1;
   }
 
   public void SetState(PrefabGUID newState) {

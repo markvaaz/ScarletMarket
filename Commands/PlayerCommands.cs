@@ -134,7 +134,7 @@ public static class PlayerCommands {
         ctx.Reply($"- {result.Name}".Format());
       }
       ctx.Reply($"Found multiple items for '{itemName}'. Be more specific!".FormatError());
-      ctx.Reply("Tip: Use ~\"~quotation marks~\"~ for items with spaces in their names.".Format());
+      ctx.Reply("Tip: Join words together like ~ironingot~ or use ~\"~quotation marks~\"~ for items with spaces.".Format());
       return;
     }
 
@@ -207,7 +207,7 @@ public static class PlayerCommands {
         ctx.Reply($"- {result.Name}".Format());
       }
       ctx.Reply($"Found multiple items for '{itemName}'. Be more specific!".FormatError());
-      ctx.Reply("Tip: Use ~\"~quotation marks~\"~ for items with spaces in their names.".Format());
+      ctx.Reply("Tip: Join words together like ~ironingot~ or use ~\"~quotation marks~\"~ for items with spaces.".Format());
       return;
     }
 
@@ -282,7 +282,7 @@ public static class PlayerCommands {
         ctx.Reply($"- {result.Name}".Format());
       }
       ctx.Reply($"Found multiple items for '{itemName}'. Be more specific!".FormatError());
-      ctx.Reply("Tip: Use ~\"~quotation marks~\"~ for items with spaces in their names.".Format());
+      ctx.Reply("Tip: Join words together like ~ironingot~ or use ~\"~quotation marks~\"~ for items with spaces.".Format());
       return;
     }
 

@@ -9,10 +9,15 @@ namespace ScarletMarket.Services;
 
 internal static class PrefabService {
   public static string FileName = "ItemPrefabNames";
+
+  public static Dictionary<int, string> AllItemPrefabNames { get; private set; } = [];
+
   public static Dictionary<int, string> ItemPrefabNames { get; private set; } = [];
+
   public static List<int> ServantPrefabs { get; private set; } = [];
 
   public static void Initialize() {
+    LoadAllItemPrefabNames();
     LoadItemPrefabNames();
   }
 
@@ -21,6 +26,13 @@ internal static class PrefabService {
     var jsonContent = LoadResource(resourceName);
 
     ServantPrefabs = JsonSerializer.Deserialize<List<int>>(jsonContent);
+  }
+
+  public static void LoadAllItemPrefabNames() {
+    var resourceName = "ScarletMarket.Localization.ItemPrefabNames.json";
+    var jsonContent = LoadResource(resourceName);
+
+    AllItemPrefabNames = JsonSerializer.Deserialize<Dictionary<int, string>>(jsonContent);
   }
 
   public static void LoadItemPrefabNames() {
@@ -60,6 +72,17 @@ internal static class PrefabService {
 
   public static string GetItem(PrefabGUID prefabId) {
     return GetItem(prefabId.GuidHash);
+  }
+
+  public static string GetAllItem(int prefabId) {
+    if (AllItemPrefabNames.TryGetValue(prefabId, out var name)) {
+      return name;
+    }
+    return $"Unknown Prefab {prefabId}";
+  }
+
+  public static string GetAllItem(PrefabGUID prefabId) {
+    return GetAllItem(prefabId.GuidHash);
   }
 
   public static bool IsValidServant(PrefabGUID prefabGUID) {

@@ -141,77 +141,29 @@ Server administrators can configure various aspects of ScarletMarket through the
 * **Shop naming permissions** - Allow or restrict custom shop names
 * **Maximum prices** - Limit the maximum amount players can charge
 * **Plot management** - Control plot creation and removal
+* **Currency items** - Define which items can be used as prices for trading
 
-### Configuration File Example
+### Configuration Files
 
-After first launch, a configuration file will be created at `BepInEx/config/ScarletMarket.cfg`:
+After first launch, the following configuration files will be created:
 
-```properties
-## Settings file was created by plugin ScarletMarket v1.0.0
-## Plugin GUID: ScarletMarket
+**Main Configuration:**
+* `BepInEx/config/ScarletMarket.cfg` - Main mod settings with default values that you can customize
 
-[General]
+**Currency Database:**
+* `BepInEx/config/ScarletMarket/ItemPrefabNames.json` - Contains the list of items that can be used as currency/prices in the market system
 
-## Default name for empty trader plots.
-## This will be used when a player has not set a custom name for their shop.
-# Setting type: String
-# Default value: Empty Plot
-EmptyPlotName = Empty Plot
+### Currency System Management
 
-## Allow players to set custom shop names.
-## If disabled, shops will use the default name based on the trader's name.
-# Setting type: Boolean
-# Default value: true
-AllowCustomShopNames = true
+The `ItemPrefabNames.json` file controls which items can be used as currency for shop pricing.
 
-## Text to append when a trader shop is closed.
-## This text will be added to the end of the shop name when it is not ready for trading.
-# Setting type: String
-# Default value: Closed
-ClosedText = Closed
+* **Add items** to allow them as payment methods
+* **Remove items** to restrict them from being used as currency
+* **Edit item names** if needed for your server
 
-[Plot Purchase]
+**Note:** Only items in this file can be used for setting shop prices with `.market addcost`
 
-## Item GUID required to claim a plot. Set to 0 to make plots free.
-## Use item GUIDs from the game or community databases.
-# Setting type: Int32
-# Default value: 0
-PrefabGUID = 0
-
-## Number of items required to claim a plot.
-## If set to 0, plots can be claimed without any cost.
-# Setting type: Int32
-# Default value: 0
-Amount = 0
-
-[Trader]
-
-## Trader prefab GUID. 
-## IMPORTANT: Only use characters whose prefab name ends with _Servant (e.g., CHAR_Bandit_Bomber_Servant). Using any other will revert to the default trader prefab.
-# Setting type: Int32
-# Default value: 40217214
-TraderPrefab = 40217214
-
-[Trader Timeout]
-
-## Enable/disable the trader timeout system entirely.
-## When disabled, trader shops will never be automatically removed.
-# Setting type: Boolean
-# Default value: false
-TraderTimeoutEnabled = false
-
-## Maximum days a player can be offline before their trader shop is automatically removed.
-## Warning: All items in the shop and storage will be permanently lost!
-# Setting type: Int32
-# Default value: 15
-MaxInactiveDays = 15
-
-## Clean up empty trader shops when the server starts.
-## Only removes shops with no items in both display and storage areas.
-# Setting type: Boolean
-# Default value: true
-RemoveEmptyTradersOnStartup = true
-```
+**⚠️ Warning:** Backup the file before editing. Invalid item IDs can cause errors. To restore defaults, simply delete the file - it will be recreated with the complete item list when the server restarts.
 
 ## This project is made possible by the contributions of the following individuals:
 

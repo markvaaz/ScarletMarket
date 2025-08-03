@@ -41,7 +41,6 @@ internal class PlotModel {
     Show();
   }
 
-  // For loading existing plot with inspect entity
   public PlotModel(Entity entity, Entity inspectEntity) {
     if (entity.IsNull() || !entity.Exists()) {
       Log.Error("Cannot create PlotModel: Entity is null or does not exist.");
@@ -50,7 +49,6 @@ internal class PlotModel {
     Entity = entity;
     Inspect = inspectEntity;
     Inspect.Write(new Script_InspectTarget_Data());
-    MoveAreaTo(Position);
     SetRadius(0);
   }
 

@@ -8,6 +8,7 @@ using ScarletCore.Systems;
 using ScarletCore.Utils;
 using ScarletMarket.Services;
 using ScarletMarket.Models;
+using ScarletCore.Services;
 
 namespace ScarletMarket.Patches;
 
@@ -77,7 +78,7 @@ internal static class InventoryPatches {
         var traderIsWaitingForItem = trader.State == TraderState.WaitingForItem || trader.State == TraderState.ReceivedCost;
 
         // Adding item to own stand
-        if (playerOwnsTrader && isAddingItem && traderIsWaitingForItem && TraderModel.TryGetItemAtSlot(fromInv, moveItemEvent.FromSlot, out _)) {
+        if (playerOwnsTrader && isAddingItem && traderIsWaitingForItem && InventoryService.TryGetItemAtSlot(fromInv, moveItemEvent.FromSlot, out _)) {
           if (moveItemEvent.ToSlot != -1 && !TraderModel.IsValidSlot(moveItemEvent.ToSlot)) {
             entity.Destroy(true);
             TraderService.SendErrorSCT(player, SCTMessages.CannotDo);

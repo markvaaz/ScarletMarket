@@ -69,6 +69,21 @@ public static class AdminCommands {
     ctx.Reply($"Shop {trader.Name} has been forcefully closed.".FormatSuccess());
   }
 
+  [Command("forcecloseall", "Force close all shops", adminOnly: true)]
+  public static void ForceCloseAllShops(ChatCommandContext ctx) {
+    var traders = TraderService.TraderEntities.Values;
+    if (traders.Count == 0) {
+      ctx.Reply("No shops found.".FormatError());
+      return;
+    }
+
+    foreach (var trader in traders) {
+      trader.SetAsNotReady();
+    }
+
+    ctx.Reply($"All shops have been forcefully closed.".FormatSuccess());
+  }
+
   [Command("create plot", adminOnly: true)]
   public static void CreatePlot(ChatCommandContext ctx) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {

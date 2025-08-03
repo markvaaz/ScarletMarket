@@ -1,0 +1,10 @@
+{
+  "name": "ScarletMarket",
+  "version_number": "1.0.0",
+  "website_url": "https://github.com/markvaaz/ScarletMarket",
+  "description": "Summon a servant that follows you and carries your items!",
+  "dependencies": [
+    "BepInEx-BepInExPack_V_Rising-1.733.2",
+    "ScarletMods-ScarletCore-1.1.7"
+  ]
+}

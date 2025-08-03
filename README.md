@@ -1,6 +1,6 @@
 # ScarletMarket
 
-**ScarletMarket** is a V Rising mod that adds a comprehensive player trading system. Create your own shops, set up automated NPC traders, and build a thriving marketplace economy with other players on your server. 
+**ScarletMarket** is a V Rising mod that transforms your server into a bustling marketplace economy. Create automated player-to-player shops with persistent NPC traders that work 24/7, even when you're offline. Build your trading empire, set flexible pricing with any item as currency, and let other players discover and trade with your shops seamlessly.
 
 ---
 

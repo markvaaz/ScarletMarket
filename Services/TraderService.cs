@@ -98,7 +98,7 @@ internal static class TraderService {
     var requiredAmount = Settings.Get<int>("Amount");
 
     if (requiredPrefabGUID.GuidHash != 0 && requiredAmount > 0 && !InventoryService.HasAmount(player.CharacterEntity, requiredPrefabGUID, requiredAmount)) {
-      var item = ItemSearchService.FindByPrefabGUID(requiredPrefabGUID);
+      var item = ItemSearchService.FindAllByPrefabGUID(requiredPrefabGUID);
       MessageService.Send(player, $"You don't have enough ~{item.Value.Name}~ to claim this plot.".FormatError());
       return;
     }

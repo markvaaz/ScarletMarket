@@ -49,12 +49,12 @@ internal class TraderModel {
     Plot = plot;
     var oldStandSize = GetContainerSize(Spawnable.StandChest);
     var oldStorageSize = GetContainerSize(Spawnable.StorageChest);
-    SetContainerSize(Spawnable.StorageChest, 63);
-    SetContainerSize(Spawnable.StandChest, 35);
+    // SetContainerSize(Spawnable.StorageChest, 63);
+    // SetContainerSize(Spawnable.StandChest, 35);
     StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f, Owner.UserEntity);
     Stand = UnitSpawnerService.ImmediateSpawn(Spawnable.StandChest, Position + TraderAndStandOffset, 0f, 0f, -1f);
-    SetContainerSize(Spawnable.StandChest, oldStandSize);
-    SetContainerSize(Spawnable.StorageChest, oldStorageSize);
+    // SetContainerSize(Spawnable.StandChest, oldStandSize);
+    // SetContainerSize(Spawnable.StorageChest, oldStorageSize);
     Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f, Owner.UserEntity);
     Coffin = UnitSpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f, Owner.UserEntity);
     SetState(TraderState.WaitingForItem);
@@ -211,13 +211,13 @@ internal class TraderModel {
 
   public bool HasAnyValidTradePairs() {
     for (int i = 0; i < 7; i++) {
-      if (TryGetItemAtSlot(Stand, i, out _) && TryGetItemAtSlot(Stand, i + 7, out _)) {
+      if (InventoryService.TryGetItemAtSlot(Stand, i, out _) && InventoryService.TryGetItemAtSlot(Stand, i + 7, out _)) {
         return true;
       }
     }
 
     for (int i = 21; i < 28; i++) {
-      if (TryGetItemAtSlot(Stand, i, out _) && TryGetItemAtSlot(Stand, i + 7, out _)) {
+      if (InventoryService.TryGetItemAtSlot(Stand, i, out _) && InventoryService.TryGetItemAtSlot(Stand, i + 7, out _)) {
         return true;
       }
     }
@@ -314,25 +314,27 @@ internal class TraderModel {
   }
 
   public void RemoveItemOnSlot(int slot) {
-    if (!TryGetItemAtSlot(Stand, slot, out var item) || (slot >= 14 && slot < 21)) return;
+    if (!InventoryService.TryGetItemAtSlot(Stand, slot, out var item) || (slot >= 14 && slot < 21)) return;
 
-    InventoryUtilitiesServer.TryRemoveItemAtIndex(GameSystems.EntityManager, Stand, item.ItemType, item.Amount, slot, true);
+    InventoryService.RemoveItemAtSlot(Stand, slot, item.Amount);
   }
 
   public bool IsEmpty() {
     for (int i = 0; i < 7; i++) {
-      if (TryGetItemAtSlot(Stand, i, out _)) {
+      if (InventoryService.TryGetItemAtSlot(Stand, i, out _)) {
         return false;
       }
     }
 
     for (int i = 21; i < 28; i++) {
-      if (TryGetItemAtSlot(Stand, i, out _)) {
+      if (InventoryService.TryGetItemAtSlot(Stand, i, out _)) {
         return false;
       }
     }
 
-    if (!InventoryUtilities.IsInventoryEmpty(GameSystems.EntityManager, StorageChest)) {
+
+
+    if (!InventoryService.IsInventoryEmpty(StorageChest)) {
       return false;
     }
 
@@ -366,12 +368,12 @@ internal class TraderModel {
       return false;
     }
 
-    if (!TryGetItemAtSlot(Stand, slot, out var item)) {
+    if (!InventoryService.TryGetItemAtSlot(Stand, slot, out var item)) {
       SendMessage(player, "Couldn't find that item in the shop.");
       return false;
     }
 
-    if (!TryGetItemAtSlot(Stand, slot + 7, out var costItem)) {
+    if (!InventoryService.TryGetItemAtSlot(Stand, slot + 7, out var costItem)) {
       SendMessage(player, "This item doesn't have a price set.");
       return false;
     }
@@ -391,8 +393,6 @@ internal class TraderModel {
       return false;
     }
 
-    // InventoryService.RemoveItem(player.CharacterEntity, costItem.ItemType, costItem.Amount);
-    // InventoryService.AddItem(StorageChest, costItem.ItemType, costItem.Amount);
     InventoryService.TransferItem(player.CharacterEntity, StorageChest, costItem.ItemType, costItem.Amount);
     RemoveCostItem(slot + 7);
 
@@ -418,14 +418,14 @@ internal class TraderModel {
 
   public KeyValuePair<InventoryBuffer, int> GetItemWithNoCost() {
     for (int i = 0; i < 7; i++) {
-      if (TryGetItemAtSlot(Stand, i, out var item)) {
-        if (!TryGetItemAtSlot(Stand, i + 7, out _)) return new(item, i);
+      if (InventoryService.TryGetItemAtSlot(Stand, i, out var item)) {
+        if (!InventoryService.TryGetItemAtSlot(Stand, i + 7, out _)) return new(item, i);
       }
     }
 
     for (int i = 21; i < 28; i++) {
-      if (TryGetItemAtSlot(Stand, i, out var item)) {
-        if (!TryGetItemAtSlot(Stand, i + 7, out _)) return new(item, i);
+      if (InventoryService.TryGetItemAtSlot(Stand, i, out var item)) {
+        if (!InventoryService.TryGetItemAtSlot(Stand, i + 7, out _)) return new(item, i);
       }
     }
 
@@ -434,14 +434,14 @@ internal class TraderModel {
 
   public KeyValuePair<InventoryBuffer, int> GetCostWithoutItem() {
     for (int i = 7; i < 14; i++) {
-      if (TryGetItemAtSlot(Stand, i, out var item)) {
-        if (!TryGetItemAtSlot(Stand, i - 7, out _)) return new(item, i);
+      if (InventoryService.TryGetItemAtSlot(Stand, i, out var item)) {
+        if (!InventoryService.TryGetItemAtSlot(Stand, i - 7, out _)) return new(item, i);
       }
     }
 
     for (int i = 28; i < 35; i++) {
-      if (TryGetItemAtSlot(Stand, i, out var item)) {
-        if (!TryGetItemAtSlot(Stand, i - 7, out _)) return new(item, i);
+      if (InventoryService.TryGetItemAtSlot(Stand, i, out var item)) {
+        if (!InventoryService.TryGetItemAtSlot(Stand, i - 7, out _)) return new(item, i);
       }
     }
 
@@ -458,23 +458,6 @@ internal class TraderModel {
     }
 
     return false;
-  }
-
-  public static bool TryGetItemAtSlot(Entity entity, int slot, out InventoryBuffer item) {
-    if (InventoryUtilities.TryGetItemAtSlot(GameSystems.EntityManager, entity, slot, out item)) {
-      return true;
-    }
-    return false;
-  }
-
-  public void AddWithMaxAmount(Entity entity, int slot, PrefabGUID prefabGUID, int amount, int maxAmount) {
-    var response = GameSystems.ServerGameManager.TryAddInventoryItem(entity, prefabGUID, 1, new(slot), false);
-    var slotIndex = response.Slot;
-    var items = InventoryService.GetInventoryItems(entity);
-    var item = items[slotIndex];
-    item.MaxAmountOverride = maxAmount;
-    item.Amount = amount;
-    items[slotIndex] = item;
   }
 
   public void AddCostWithMaxAmount(Entity entity, int slot, PrefabGUID prefabGUID, int amount, int maxAmount) {
@@ -511,7 +494,7 @@ internal class TraderModel {
   public void BlockSlots(Entity entity, int startSlot, int endSlot) {
     for (int i = startSlot; i < endSlot; i++) {
       BlockedSlots.Add(i);
-      AddWithMaxAmount(entity, i, BLOCK_SLOT_ITEM, 1, 1);
+      InventoryService.AddWithMaxAmount(entity, BLOCK_SLOT_ITEM, i, 1, 1);
     }
   }
 
@@ -541,8 +524,8 @@ internal class TraderModel {
   }
 
   private void SetupStorageChest() {
-    Attach(StorageChest);
     StorageChest.SetId(Ids.Storage);
+    Attach(StorageChest);
     StorageChest.SetTeam(Owner.CharacterEntity);
     StorageChest.Remove<DestroyWhenInventoryIsEmpty>();
     StorageChest.Remove<ShrinkInventoryWhenWithdrawn>();
@@ -558,11 +541,15 @@ internal class TraderModel {
     syncToUserBuffer.Add(new SyncToUserBuffer() {
       UserEntity = Owner.UserEntity
     });
+
+    ActionScheduler.DelayedFrames(() => {
+      InventoryService.ModifyInventorySize(StorageChest, 63);
+    }, 10);
   }
 
   private void SetupStand() {
-    Attach(Stand);
     Stand.SetId(Ids.Stand);
+    Attach(Stand);
     Stand.With((ref EditableTileModel editableTileModel) => {
       editableTileModel.CanDismantle = false;
       editableTileModel.CanMoveAfterBuild = false;
@@ -574,6 +561,7 @@ internal class TraderModel {
         end();
         return;
       }
+      InventoryService.ModifyInventorySize(Stand, 35);
       BlockSlots(Stand, 14, 21);
     }, 15);
     BuffService.TryApplyBuff(Stand, Buffs.Invisibility, -1);

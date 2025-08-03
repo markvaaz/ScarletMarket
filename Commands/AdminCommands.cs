@@ -19,6 +19,56 @@ public static class AdminCommands {
   private static readonly Dictionary<PlayerData, PlotModel> _selectedPlots = [];
   private static readonly Dictionary<PlayerData, ActionId> _selectedActions = [];
 
+  [Command("forceopen", "Force open a shop", adminOnly: true)]
+  public static void ForceOpenShop(ChatCommandContext ctx) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    if (!TraderService.TryGetPlot(player.Position, out var plot)) {
+      ctx.Reply("You need to be inside a plot to open a shop.".FormatError());
+      return;
+    }
+
+    if (plot.Trader == null) {
+      ctx.Reply("No shop found in this plot.".FormatError());
+      return;
+    }
+
+    var trader = plot.Trader;
+
+    if (trader.AdminSetAsReady(player)) {
+      ctx.Reply($"Shop {trader.Name} has been forcefully opened.".FormatSuccess());
+    } else {
+      ctx.Reply("Failed to open shop.".FormatError());
+    }
+  }
+
+  [Command("forceclose", "Force close a shop", adminOnly: true)]
+  public static void ForceCloseShop(ChatCommandContext ctx) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    if (!TraderService.TryGetPlot(player.Position, out var plot)) {
+      ctx.Reply("You need to be inside a plot to close a shop.".FormatError());
+      return;
+    }
+
+    if (plot.Trader == null) {
+      ctx.Reply("No shop found in this plot.".FormatError());
+      return;
+    }
+
+    var trader = plot.Trader;
+
+    trader.SetAsNotReady();
+
+    ctx.Reply($"Shop {trader.Name} has been forcefully closed.".FormatSuccess());
+  }
+
   [Command("create plot", adminOnly: true)]
   public static void CreatePlot(ChatCommandContext ctx) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {

@@ -260,6 +260,32 @@ internal class TraderModel {
     }
   }
 
+  public bool AdminSetAsReady(PlayerData admin) {
+    if (State == TraderState.Ready) {
+      SendMessage(admin, "Shop is already open.");
+      return false;
+    }
+
+    var hasAnyValidTradePairs = HasAnyValidTradePairs();
+    var hasItemWithNoCost = HasItemWithNoCost();
+
+    if (hasAnyValidTradePairs && !hasItemWithNoCost) {
+      SetState(TraderState.Ready);
+      return true;
+    }
+
+    if (hasItemWithNoCost) {
+      SendMessage(admin, "Cannot open shop with items that have no cost set.");
+
+    }
+
+    if (!hasAnyValidTradePairs) {
+      SendMessage(admin, "Cannot open shop without items.");
+    }
+
+    return false;
+  }
+
   public void SetAsNotReady() {
     if (State == TraderState.WaitingForItem || State == TraderState.WaitingForCost) {
       SendErrorSCT(SCTMessages.AlreadyAssigned);

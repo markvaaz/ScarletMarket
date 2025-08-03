@@ -194,8 +194,8 @@ public static class PlayerCommands {
 
   [Command("search buy", "Search for shops selling a specific item")]
   public static void SearchBuy(ChatCommandContext ctx, string itemName) {
-    var item = ItemSearchService.FindByExactName(itemName);
-    var items = ItemSearchService.SearchByName(itemName);
+    var item = ItemSearchService.FindAllByExactName(itemName);
+    var items = ItemSearchService.SearchAllByName(itemName);
 
     if (items.Count == 0) {
       ctx.Reply($"Couldn't find any item named '{itemName}'. Check the spelling?".FormatError());
@@ -234,7 +234,7 @@ public static class PlayerCommands {
             var costSlot = slot < 7 ? slot + 7 : slot + 7; // 0-6 -> 7-13, 21-27 -> 28-34
 
             if (InventoryService.TryGetItemAtSlot(trader.Stand, costSlot, out var costItem)) {
-              var costItemResult = ItemSearchService.FindByPrefabGUID(costItem.ItemType);
+              var costItemResult = ItemSearchService.FindAllByPrefabGUID(costItem.ItemType);
               var costText = costItemResult.HasValue
                 ? $"{costItem.Amount}x {costItemResult.Value.Name}"
                 : $"{costItem.Amount}x Unknown Item";
@@ -269,8 +269,8 @@ public static class PlayerCommands {
 
   [Command("search sell", "Search for shops that want to buy a specific item")]
   public static void SearchSell(ChatCommandContext ctx, string itemName) {
-    var item = ItemSearchService.FindByExactName(itemName);
-    var items = ItemSearchService.SearchByName(itemName);
+    var item = ItemSearchService.FindAllByExactName(itemName);
+    var items = ItemSearchService.SearchAllByName(itemName);
 
     if (items.Count == 0) {
       ctx.Reply($"Couldn't find any item named '{itemName}'. Check the spelling?".FormatError());
@@ -309,7 +309,7 @@ public static class PlayerCommands {
             var itemSlot = costSlot < 14 ? costSlot - 7 : costSlot - 7; // 7-13 -> 0-6, 28-34 -> 21-27
 
             if (InventoryService.TryGetItemAtSlot(trader.Stand, itemSlot, out var sellingItem)) {
-              var sellingItemResult = ItemSearchService.FindByPrefabGUID(sellingItem.ItemType);
+              var sellingItemResult = ItemSearchService.FindAllByPrefabGUID(sellingItem.ItemType);
               var sellingText = sellingItemResult.HasValue
                 ? $"{sellingItem.Amount}x {sellingItemResult.Value.Name}"
                 : $"{sellingItem.Amount}x Unknown Item";

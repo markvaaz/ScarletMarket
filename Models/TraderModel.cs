@@ -378,8 +378,8 @@ internal class TraderModel {
       return false;
     }
 
-    var itemResult = ItemSearchService.FindByPrefabGUID(item.ItemType);
-    var costItemResult = ItemSearchService.FindByPrefabGUID(costItem.ItemType);
+    var itemResult = ItemSearchService.FindAllByPrefabGUID(item.ItemType);
+    var costItemResult = ItemSearchService.FindAllByPrefabGUID(costItem.ItemType);
 
     var itemName = itemResult?.Name ?? "item";
     var costItemName = costItemResult?.Name ?? "items";

@@ -7,7 +7,15 @@ using Stunlock.Core;
 namespace ScarletMarket.Services;
 
 internal static class ItemSearchService {
+  public static List<ItemSearchResult> SearchAllByName(string searchTerm, int maxResults = 20) {
+    return SearchByNameInternal(PrefabService.AllItemPrefabNames, searchTerm, maxResults);
+  }
+
   public static List<ItemSearchResult> SearchByName(string searchTerm, int maxResults = 20) {
+    return SearchByNameInternal(PrefabService.ItemPrefabNames, searchTerm, maxResults);
+  }
+
+  private static List<ItemSearchResult> SearchByNameInternal(Dictionary<int, string> itemDictionary, string searchTerm, int maxResults = 20) {
     if (string.IsNullOrWhiteSpace(searchTerm)) {
       return [];
     }
@@ -17,7 +25,7 @@ internal static class ItemSearchService {
     var searchTermLower = searchTerm.ToLowerInvariant().Replace("'", "");
     var searchTermNoSpaces = searchTermLower.Replace(" ", "");
 
-    foreach (var kvp in PrefabService.ItemPrefabNames) {
+    foreach (var kvp in itemDictionary) {
       var itemName = kvp.Value;
 
       if (ItemMatches(itemName, searchTermLower, searchTermNoSpaces) && !alreadyAdded.Contains(kvp.Value)) {
@@ -125,7 +133,15 @@ internal static class ItemSearchService {
     return variations;
   }
 
+  public static ItemSearchResult FindAllByExactName(string exactName) {
+    return FindByExactNameInternal(PrefabService.AllItemPrefabNames, exactName);
+  }
+
   public static ItemSearchResult FindByExactName(string exactName) {
+    return FindByExactNameInternal(PrefabService.ItemPrefabNames, exactName);
+  }
+
+  private static ItemSearchResult FindByExactNameInternal(Dictionary<int, string> itemDictionary, string exactName) {
     if (string.IsNullOrWhiteSpace(exactName)) {
       return default;
     }
@@ -133,7 +149,7 @@ internal static class ItemSearchService {
     var exactNameLower = exactName.ToLowerInvariant().Replace("'", "");
     var exactNameNoSpaces = exactNameLower.Replace(" ", "");
 
-    foreach (var kvp in PrefabService.ItemPrefabNames) {
+    foreach (var kvp in itemDictionary) {
       var itemName = kvp.Value;
 
       var itemNameNoParentheses = itemName.ToLowerInvariant().Replace("(", "").Replace(")", "").Replace(" ", "").Replace("'", "");
@@ -171,12 +187,24 @@ internal static class ItemSearchService {
     return false;
   }
 
+  public static ItemSearchResult? FindAllByPrefabGUID(PrefabGUID prefabGUID) {
+    return FindAllByPrefabId(prefabGUID.GuidHash);
+  }
+
+  public static ItemSearchResult? FindAllByPrefabId(int prefabId) {
+    return FindByPrefabIdInternal(PrefabService.AllItemPrefabNames, prefabId);
+  }
+
   public static ItemSearchResult? FindByPrefabGUID(PrefabGUID prefabGUID) {
     return FindByPrefabId(prefabGUID.GuidHash);
   }
 
   public static ItemSearchResult? FindByPrefabId(int prefabId) {
-    if (PrefabService.ItemPrefabNames.TryGetValue(prefabId, out var name)) {
+    return FindByPrefabIdInternal(PrefabService.ItemPrefabNames, prefabId);
+  }
+
+  private static ItemSearchResult? FindByPrefabIdInternal(Dictionary<int, string> itemDictionary, int prefabId) {
+    if (itemDictionary.TryGetValue(prefabId, out var name)) {
       return new ItemSearchResult {
         PrefabGUID = new PrefabGUID(prefabId),
         Name = name,
@@ -187,9 +215,17 @@ internal static class ItemSearchService {
   }
 
   public static List<ItemSearchResult> GetAllItems() {
+    return GetItemsInternal(PrefabService.AllItemPrefabNames);
+  }
+
+  public static List<ItemSearchResult> GetCurrencyItems() {
+    return GetItemsInternal(PrefabService.ItemPrefabNames);
+  }
+
+  private static List<ItemSearchResult> GetItemsInternal(Dictionary<int, string> itemDictionary) {
     var results = new List<ItemSearchResult>();
 
-    foreach (var kvp in PrefabService.ItemPrefabNames) {
+    foreach (var kvp in itemDictionary) {
       results.Add(new ItemSearchResult {
         PrefabGUID = new PrefabGUID(kvp.Key),
         Name = kvp.Value,

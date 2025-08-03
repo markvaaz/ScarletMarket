@@ -62,6 +62,8 @@ ScarletMarket transforms designated plot areas into player-owned shops. When you
 * `.market remove shop` - Remove a shop from a plot (must be empty)
 * `.market forceremove shop` - Forcefully remove a shop and its plot (deletes all items inside)
 * `.market forcerename "<name>"` - Admin rename any shop
+* `.market forceopen` - Force open a shop
+* `.market forceclose` - Force close a shop
 
 **Access Control:**
 * `.market claimaccess` - Gain access to view any shop's contents (view only, cannot add/remove items). While active, the shop owner cannot access their shop

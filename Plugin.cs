@@ -60,7 +60,6 @@ public class Plugin : BasePlugin {
   }
 
   public static void ReloadSettings() {
-    Settings.Dispose();
     LoadSettings();
   }
   public static void LoadSettings() {

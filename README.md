@@ -74,6 +74,7 @@ ScarletMarket transforms designated plot areas into player-owned shops. When you
 * `.market hideradius` - Hide all plot boundaries
 
 **Maintenance:**
+* `.market reload` - Reload all trader data and re-register traders (useful if mod failed to load properly or if there is any unregistered trader)
 * `.market clear emptyplots` - Remove all empty plots
 * `.market clear emptyshops` - Remove all empty shops
 * `.market getinactive <days>` - List shops inactive for X days

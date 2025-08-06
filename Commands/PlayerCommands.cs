@@ -4,7 +4,6 @@ using ScarletMarket.Services;
 using VampireCommandFramework;
 using System.Text;
 using System.Linq;
-using ScarletMarket.Models;
 using Unity.Mathematics;
 using System.Collections.Generic;
 

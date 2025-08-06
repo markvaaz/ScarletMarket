@@ -463,4 +463,14 @@ internal static class TraderService {
       player.UserEntity
     );
   }
+
+  public static void Reload() {
+    TraderEntities.Clear();
+    StorageEntities.Clear();
+    StandEntities.Clear();
+    TraderById.Clear();
+    Plots.Clear();
+
+    RegisterOnLoad();
+  }
 }

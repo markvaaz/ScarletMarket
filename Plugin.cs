@@ -55,6 +55,7 @@ public class Plugin : BasePlugin {
     _harmony?.UnpatchSelf();
     CommandRegistry.UnregisterAssembly();
     ActionScheduler.UnregisterAssembly(Assembly.GetExecutingAssembly());
+    EventManager.UnregisterAssembly(Assembly.GetExecutingAssembly());
     return true;
   }
 

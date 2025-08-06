@@ -58,7 +58,14 @@ internal static class InventoryPatches {
 
         // Get trader from either inventory
         var trader = TraderService.GetTrader(fromInv) ?? TraderService.GetTrader(toInv);
-        if (trader == null) continue;
+
+        if (trader == null) {
+          TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
+          player.SendMessage("~Something went wrong~. This trader is not registered.".FormatError());
+          player.SendMessage("Please contact an administrator.");
+          entity.Destroy(true);
+          continue;
+        }
 
         var playerOwnsTrader = trader.Owner == player;
         var isRemovingItem = fromInv != toInv && fromInvIsStand;
@@ -169,10 +176,24 @@ internal static class InventoryPatches {
         if (!fromCharacter.Character.Has<PlayerCharacter>() || !fromCharacter.User.Has<User>()) continue;
 
         var player = fromCharacter.Character.GetPlayerData();
+
+        if (inv.Read<Follower>().Followed._Value != player.UserEntity) {
+          TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
+          entity.Destroy(true);
+          continue;
+        }
+
         var trader = TraderService.GetTrader(inv);
 
-        if (trader.Owner == player) trader?.SetAsNotReady();
-        else TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
+        if (trader == null) {
+          TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
+          player.SendMessage("~Something went wrong~. This trader is not registered.".FormatError());
+          player.SendMessage("Please contact an administrator.");
+          entity.Destroy(true);
+          continue;
+        }
+
+        trader.SetAsNotReady();
 
         entity.Destroy(true);
       }
@@ -233,10 +254,21 @@ internal static class InventoryPatches {
           continue;
         }
 
+        if (fromInv.Read<Follower>().Followed._Value != player.UserEntity) {
+          TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
+          entity.Destroy(true);
+          continue;
+        }
+
         var trader = TraderService.GetTrader(fromInv);
 
-        if (trader.Owner == player) trader?.SetAsReady();
-        else TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
+        if (trader == null) {
+          TraderService.SendErrorSCT(player, SCTMessages.CannotDo);
+          entity.Destroy(true);
+          continue;
+        }
+
+        trader.SetAsReady();
 
         entity.Destroy(true);
       }

@@ -19,6 +19,13 @@ public static class AdminCommands {
   private static readonly Dictionary<PlayerData, PlotModel> _selectedPlots = [];
   private static readonly Dictionary<PlayerData, ActionId> _selectedActions = [];
 
+  [Command("reload", "Reloads the trader service", adminOnly: true)]
+  public static void ReloadTraderService(ChatCommandContext ctx) {
+    TraderService.Reload();
+    Plugin.ReloadSettings();
+    ctx.Reply("Trader service has been reloaded.".FormatSuccess());
+  }
+
   [Command("forceopen", "Force open a shop", adminOnly: true)]
   public static void ForceOpenShop(ChatCommandContext ctx) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {

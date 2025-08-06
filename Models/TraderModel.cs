@@ -384,6 +384,11 @@ internal class TraderModel {
   }
 
   public bool TryBuyItem(PlayerData player, int slot) {
+    if (State != TraderState.Ready) {
+      SendMessage(player, "Trader is not ready for trading.");
+      return false;
+    }
+
     if (InventoryService.IsFull(player.CharacterEntity)) {
       SendMessage(player, "Your inventory is full.");
       return false;

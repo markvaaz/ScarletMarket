@@ -23,6 +23,7 @@ public static class AdminCommands {
   public static void ReloadTraderService(ChatCommandContext ctx) {
     TraderService.Reload();
     Plugin.ReloadSettings();
+    PrefabService.LoadItemPrefabNames();
     ctx.Reply("Trader service has been reloaded.".FormatSuccess());
   }
 

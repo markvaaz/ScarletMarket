@@ -30,7 +30,7 @@ internal class TraderModel {
   public Entity DefaultStandEntity => TraderService.DefaultStandEntity;
   public PlayerData Owner { get; private set; }
   public PrefabGUID State { get; private set; }
-  public float3 Position => Plot?.Position ?? Trader.Position();
+  public float3 Position => Plot?.Position ?? StorageChest.Position();
   // Offsets for the storage chest and trader/stand entities inside the plot
   public static int StorageRotationOffset = 3;
   public static float3 StorageOffset => new(-0.5f, 0, 0.5f);
@@ -41,20 +41,15 @@ internal class TraderModel {
   private readonly PrefabGUID[] ServantPermaBuffs = [
     Buffs.Invulnerable,
     Buffs.DisableAggro,
-    Buffs.Immaterial
+    Buffs.Immaterial,
+    Buffs.Root
   ];
 
   public TraderModel(PlayerData player, PlotModel plot) {
     Owner = player;
     Plot = plot;
-    var oldStandSize = GetContainerSize(Spawnable.StandChest);
-    var oldStorageSize = GetContainerSize(Spawnable.StorageChest);
-    // SetContainerSize(Spawnable.StorageChest, 63);
-    // SetContainerSize(Spawnable.StandChest, 35);
     StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f, Owner.UserEntity);
     Stand = UnitSpawnerService.ImmediateSpawn(Spawnable.StandChest, Position + TraderAndStandOffset, 0f, 0f, -1f);
-    // SetContainerSize(Spawnable.StandChest, oldStandSize);
-    // SetContainerSize(Spawnable.StorageChest, oldStorageSize);
     Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f, Owner.UserEntity);
     Coffin = UnitSpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f, Owner.UserEntity);
     SetState(TraderState.WaitingForItem);
@@ -69,10 +64,37 @@ internal class TraderModel {
 
   public TraderModel(PlayerData player, Entity storageChest, Entity stand, Entity trader, Entity coffin) {
     Owner = player;
-    StorageChest = storageChest;
-    Stand = stand;
-    Trader = trader;
-    Coffin = coffin;
+
+    if (!storageChest.IsNull()) {
+      StorageChest = storageChest;
+    } else {
+      StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f, Owner.UserEntity);
+      SetupStorageChest();
+    }
+
+    if (!stand.IsNull()) {
+      Stand = stand;
+    } else {
+      Stand = UnitSpawnerService.ImmediateSpawn(Spawnable.StandChest, Position + TraderAndStandOffset, 0f, 0f, -1f);
+      SetupStand();
+    }
+
+    if (!coffin.IsNull()) {
+      Coffin = coffin;
+    } else {
+      Coffin = UnitSpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f, Owner.UserEntity);
+      SetupCoffin();
+    }
+
+    if (!trader.IsNull()) {
+      Trader = trader;
+    } else {
+      Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f, Owner.UserEntity);
+      SetupTrader();
+      SetState(TraderState.WaitingForItem);
+    }
+
+    BindCoffinServant();
     SetState(GetCurrentState());
   }
 
@@ -721,6 +743,10 @@ internal class TraderModel {
     if (Stand.Exists()) {
       Stand.SetPosition(rotatedStandPos);
       RotateTile(Stand, rotationStep);
+    }
+
+    if (Coffin.Exists()) {
+      Coffin.SetPosition(center + new float3(0, COFFIN_HEIGHT, 0));
     }
   }
 

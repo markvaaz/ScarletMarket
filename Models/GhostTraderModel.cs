@@ -25,7 +25,8 @@ internal class GhostTraderModel {
     Buffs.Invulnerable,
     Buffs.DisableAggro,
     Buffs.Immaterial,
-    Buffs.Ghost
+    Buffs.Ghost,
+    Buffs.Root
   ];
   public GhostTraderModel(PlotModel plot) {
     Plot = plot;

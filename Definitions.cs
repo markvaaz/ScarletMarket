@@ -68,6 +68,7 @@ internal static class Buffs {
   public static readonly PrefabGUID ClosedVisualClue1 = new(647429443);
   public static readonly PrefabGUID ClosedVisualClue2 = new(-883762685);
   public static readonly PrefabGUID Ghost = new(-259674366);
+  public static readonly PrefabGUID Root = new(-1527408583);
 }
 
 internal static class Animations {

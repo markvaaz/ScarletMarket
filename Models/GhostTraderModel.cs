@@ -223,6 +223,10 @@ internal class GhostTraderModel {
         lookAtInput.SetAllAimPositions(lookAtTarget);
       });
     }
+
+    if (Coffin.Exists()) {
+      Coffin.SetPosition(center + new float3(0, COFFIN_HEIGHT, 0));
+    }
   }
 
   private void RotateTile(Entity tileEntity, int rotationStep) {

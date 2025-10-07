@@ -40,7 +40,7 @@ public class Plugin : BasePlugin {
     CommandRegistry.RegisterAll();
 
     if (GameSystems.Initialized) {
-      TraderService.Initialize();
+      OnInitialize(null, null);
     } else {
       EventManager.OnInitialize += OnInitialize;
     }

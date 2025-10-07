@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.0.2] - 2025-08-06
+
+### Fixed
+- Fixed some stuff months ago, I don't remember what :D
+- Added Root buff to Trader to prevent movement issues
+
+### Added
+- Added reload method in TraderService for dynamic trader data refresh
+
 ## [1.0.1] - 2025-08-06
 
 ### Added

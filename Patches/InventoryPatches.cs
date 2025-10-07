@@ -438,7 +438,7 @@ internal static class InventoryPatches {
         entity.Destroy(true);
       }
     } catch (System.Exception ex) {
-      Log.Error($"Error in UnEquipItemSystemPatch: {ex.Message}");
+      Log.Error($"Error in EquipItemSystemPatch: {ex.Message}");
     } finally {
       entities.Dispose();
     }

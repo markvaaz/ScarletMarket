@@ -337,16 +337,21 @@ internal static class TraderService {
   }
 
   private static void RegisterTradersFromEntities(Dictionary<PlayerData, Entity> traders, Dictionary<PlayerData, Entity> storages, Dictionary<PlayerData, Entity> stands, Dictionary<PlayerData, Entity> coffins) {
-    foreach (var kvp in traders) {
+    foreach (var kvp in storages) {
       var player = kvp.Key;
-      var traderEntity = kvp.Value;
+      var hasAny = traders.ContainsKey(player) || storages.ContainsKey(player) || stands.ContainsKey(player) || coffins.ContainsKey(player);
 
-      if (storages.TryGetValue(player, out var storageEntity) && stands.TryGetValue(player, out var standEntity) && coffins.TryGetValue(player, out var coffinEntity)) {
+      if (hasAny) {
+        var traderEntity = traders.GetValueOrDefault(player);
+        var storageEntity = storages.GetValueOrDefault(player);
+        var standEntity = stands.GetValueOrDefault(player);
+        var coffinEntity = coffins.GetValueOrDefault(player);
+
         var traderModel = new TraderModel(player, storageEntity, standEntity, traderEntity, coffinEntity);
 
-        TraderEntities[standEntity] = traderModel;
-        StorageEntities[storageEntity] = traderModel;
-        StandEntities[traderEntity] = traderModel;
+        TraderEntities[traderModel.Trader] = traderModel;
+        StorageEntities[traderModel.StorageChest] = traderModel;
+        StandEntities[traderModel.Stand] = traderModel;
         TraderById[player.PlatformId] = traderModel;
       }
     }

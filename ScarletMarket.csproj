@@ -2,7 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <AssemblyName>ScarletMarket</AssemblyName>
-    <Description>Scarlet Template</Description>
+    <Description>Create automated player-to-player shops with NPC traders that work 24/7. Use any item as currency and trade even when offline.</Description>
     <Version>1.1.0</Version>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>

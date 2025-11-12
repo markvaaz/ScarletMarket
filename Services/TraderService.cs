@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ProjectM;
 using ScarletCore;
 using ScarletCore.Data;
@@ -15,11 +16,15 @@ using Unity.Mathematics;
 namespace ScarletMarket.Services;
 
 internal static class TraderService {
+  private const float ANIMATION_CHECK_INTERVAL = 20f;
+  private const int ANIMATION_CHANCE_DENOMINATOR = 3;
+
   public static readonly Dictionary<Entity, TraderModel> TraderEntities = [];
   public static readonly Dictionary<Entity, TraderModel> StorageEntities = [];
   public static readonly Dictionary<Entity, TraderModel> StandEntities = [];
   public static readonly Dictionary<ulong, TraderModel> TraderById = [];
   public static readonly List<PlotModel> Plots = [];
+  private static readonly List<Entity> OrphanCandidates = [];
   public static ActionId RunningAnimationCheck { get; private set; }
   private static Entity _defaultStandEntity;
   private static Settings Settings => Plugin.Settings;
@@ -40,14 +45,14 @@ internal static class TraderService {
   public static void Initialize() {
     RegisterOnLoad();
     RemoveInactiveTraders();
-    ActionScheduler.Repeating(SetRandomAnimation, 20f);
+    ActionScheduler.Repeating(SetRandomAnimation, ANIMATION_CHECK_INTERVAL);
   }
 
   public static void SetRandomAnimation() {
     foreach (var trader in TraderEntities.Values) {
       if (!trader.Trader.Exists()) continue;
 
-      var randomNumber = UnityEngine.Random.Range(0, 3);
+      var randomNumber = UnityEngine.Random.Range(0, ANIMATION_CHANCE_DENOMINATOR);
 
       if (randomNumber != 0) continue;
 
@@ -61,15 +66,11 @@ internal static class TraderService {
 
   public static void RemoveInactiveTraders() {
     if (!Plugin.Settings.Get<bool>("TraderTimeoutEnabled")) {
-      Log.Info("Trader timeout is disabled, skipping removal of inactive traders.");
       return;
     }
 
     if (Plugin.Settings.Get<bool>("RemoveEmptyTradersOnStartup")) {
-      var count = ClearEmptyTraders();
-      if (count > 0) {
-        Log.Info($"Removed {count} empty traders.");
-      }
+      ClearEmptyTraders();
     }
 
     foreach (var trader in TraderEntities.Values) {
@@ -78,7 +79,6 @@ internal static class TraderService {
       var maxDays = Settings.Get<int>("MaxInactiveDays");
       if (lastOnline < DateTime.Now.AddDays(-maxDays)) {
         ForceRemoveTrader(player);
-        Log.Info($"Removed inactive trader {player.Name} ({player.PlatformId}) due to inactivity.");
       }
     }
   }
@@ -121,9 +121,19 @@ internal static class TraderService {
 
     plot.Hide();
 
-    TraderEntities[trader.Stand] = trader;
+    // Register trader entities in plot's AttachedBuffer
+    if (!plot.Entity.Has<AttachedBuffer>())
+      plot.Entity.AddBuffer<AttachedBuffer>();
+
+    var attachedBuffer = plot.Entity.ReadBuffer<AttachedBuffer>();
+    attachedBuffer.Add(new AttachedBuffer { Entity = trader.StorageChest });
+    attachedBuffer.Add(new AttachedBuffer { Entity = trader.Stand });
+    attachedBuffer.Add(new AttachedBuffer { Entity = trader.Trader });
+    attachedBuffer.Add(new AttachedBuffer { Entity = trader.Coffin });
+
+    TraderEntities[trader.Trader] = trader;
     StorageEntities[trader.StorageChest] = trader;
-    StandEntities[trader.Trader] = trader;
+    StandEntities[trader.Stand] = trader;
     TraderById[player.PlatformId] = trader;
 
     MessageService.Send(player, "~Your shop has been created!~ You can now add items to sell.".FormatSuccess());
@@ -168,13 +178,19 @@ internal static class TraderService {
       return;
     }
 
+    // Clear AttachedBuffer from plot
+    if (trader.Plot != null && trader.Plot.Entity.Has<AttachedBuffer>()) {
+      var attachedBuffer = trader.Plot.Entity.ReadBuffer<AttachedBuffer>();
+      attachedBuffer.Clear();
+    }
+
     trader.Plot.Show();
     trader.Plot.Trader = null;
 
     // Remove trader from all dictionaries
-    TraderEntities.Remove(trader.Stand);
+    TraderEntities.Remove(trader.Trader);
     StorageEntities.Remove(trader.StorageChest);
-    StandEntities.Remove(trader.Trader);
+    StandEntities.Remove(trader.Stand);
     TraderById.Remove(player.PlatformId);
 
     // Destroy trader entities
@@ -206,27 +222,13 @@ internal static class TraderService {
   }
 
   public static TraderModel GetTrader(ulong platformId) {
-    if (TraderById.TryGetValue(platformId, out var trader)) {
-      return trader;
-    }
-
-    return null;
+    return TraderById.TryGetValue(platformId, out var trader) ? trader : null;
   }
 
   public static TraderModel GetTrader(Entity entity) {
-    if (TraderEntities.TryGetValue(entity, out var trader)) {
-      return trader;
-    }
-
-    if (StorageEntities.TryGetValue(entity, out trader)) {
-      return trader;
-    }
-
-    if (StandEntities.TryGetValue(entity, out trader)) {
-      return trader;
-    }
-
-    return null;
+    return TraderEntities.TryGetValue(entity, out var trader) ? trader :
+           StorageEntities.TryGetValue(entity, out trader) ? trader :
+           StandEntities.TryGetValue(entity, out trader) ? trader : null;
   }
 
   public static bool TryGetPlot(float3 position, out PlotModel plot, PlotModel exclude = null) {
@@ -257,13 +259,9 @@ internal static class TraderService {
   }
 
   public static bool WillOverlapWithExistingPlot(float3 position, PlotModel excludePlot = null) {
-    foreach (var plot in Plots) {
-      if (excludePlot != null && plot == excludePlot) continue;
-      if (math.distance(plot.Position, position) < PLOT_RADIUS * 2) {
-        return true;
-      }
-    }
-    return false;
+    var minDistance = PLOT_RADIUS * 2;
+    return Plots.Where(plot => excludePlot == null || plot != excludePlot)
+                .Any(plot => math.distance(plot.Position, position) < minDistance);
   }
 
   public static void RegisterOnLoad() {
@@ -278,15 +276,13 @@ internal static class TraderService {
 
     var query = GameSystems.EntityManager.CreateEntityQuery(ref queryBuilder).ToEntityArray(Allocator.Temp);
 
-    var traders = new Dictionary<PlayerData, Entity>();
-    var storages = new Dictionary<PlayerData, Entity>();
-    var stands = new Dictionary<PlayerData, Entity>();
-    var coffins = new Dictionary<PlayerData, Entity>();
     var plots = new Dictionary<Entity, Entity>();
     var inspects = new Dictionary<Entity, Entity>();
     var ghostStorages = new Dictionary<Entity, Entity>();
     var ghostTraders = new Dictionary<Entity, Entity>();
     var ghostCoffins = new Dictionary<Entity, Entity>();
+
+    OrphanCandidates.Clear(); // Limpar candidatos anteriores
 
     foreach (var entity in query) {
       if (!entity.Has<NameableInteractable>()) continue;
@@ -297,6 +293,7 @@ internal static class TraderService {
       }
 
       if (!entity.Has<Follower>()) continue;
+
       var followed = entity.Read<Follower>().Followed._Value;
 
       if (entity.IdEquals(Ids.Inspect)) {
@@ -307,25 +304,16 @@ internal static class TraderService {
         ghostTraders[followed] = entity;
       } else if (entity.IdEquals(Ids.GhostCoffin)) {
         ghostCoffins[followed] = entity;
-      } else {
-        var playerData = followed.GetPlayerData();
-        if (playerData == null) continue;
-
-        if (entity.IdEquals(Ids.Trader)) {
-          traders[playerData] = entity;
-        } else if (entity.IdEquals(Ids.Storage)) {
-          storages[playerData] = entity;
-        } else if (entity.IdEquals(Ids.Stand)) {
-          stands[playerData] = entity;
-        } else if (entity.IdEquals(Ids.Coffin)) {
-          coffins[playerData] = entity;
-        }
+      } else if (entity.IdEquals(Ids.Trader) || entity.IdEquals(Ids.Storage) ||
+                entity.IdEquals(Ids.Stand) || entity.IdEquals(Ids.Coffin)) {
+        OrphanCandidates.Add(entity);
       }
     }
 
     RegisterPlotsFromEntities(plots, inspects);
-    RegisterTradersFromEntities(traders, storages, stands, coffins);
+    RegisterTradersFromPlots(plots);
     RegisterGhostsFromEntities(ghostStorages, ghostTraders, ghostCoffins);
+    RegisterOrphanTraders();
   }
 
   private static void RegisterPlotsFromEntities(Dictionary<Entity, Entity> plots, Dictionary<Entity, Entity> inspects) {
@@ -336,25 +324,147 @@ internal static class TraderService {
     }
   }
 
-  private static void RegisterTradersFromEntities(Dictionary<PlayerData, Entity> traders, Dictionary<PlayerData, Entity> storages, Dictionary<PlayerData, Entity> stands, Dictionary<PlayerData, Entity> coffins) {
-    foreach (var kvp in storages) {
+  private static void RegisterTradersFromPlots(Dictionary<Entity, Entity> plots) {
+    foreach (var plotEntity in plots.Keys) {
+      if (!plotEntity.Has<AttachedBuffer>()) continue;
+
+      var attachedBuffer = plotEntity.ReadBuffer<AttachedBuffer>();
+      if (attachedBuffer.Length == 0) continue;
+
+      Entity storageEntity = Entity.Null;
+      Entity standEntity = Entity.Null;
+      Entity traderEntity = Entity.Null;
+      Entity coffinEntity = Entity.Null;
+
+      foreach (var attached in attachedBuffer) {
+        var entity = attached.Entity;
+        if (!entity.Exists()) continue;
+
+        if (entity.IdEquals(Ids.Storage)) {
+          storageEntity = entity;
+        } else if (entity.IdEquals(Ids.Stand)) {
+          standEntity = entity;
+        } else if (entity.IdEquals(Ids.Trader)) {
+          traderEntity = entity;
+        } else if (entity.IdEquals(Ids.Coffin)) {
+          coffinEntity = entity;
+        }
+      }
+
+      if (storageEntity != Entity.Null && storageEntity.Has<Follower>()) {
+        var player = storageEntity.Read<Follower>().Followed._Value.GetPlayerData();
+        if (player != null) {
+          var traderModel = new TraderModel(player, storageEntity, standEntity, traderEntity, coffinEntity);
+
+          TraderEntities[traderModel.Trader] = traderModel;
+          StorageEntities[traderModel.StorageChest] = traderModel;
+          StandEntities[traderModel.Stand] = traderModel;
+          TraderById[player.PlatformId] = traderModel;
+
+          // Remove entidades processadas da lista de órfãos para otimizar performance
+          var processedEntities = new[] { storageEntity, standEntity, traderEntity, coffinEntity }
+            .Where(e => e != Entity.Null).ToHashSet();
+          OrphanCandidates.RemoveAll(processedEntities.Contains);
+        }
+      }
+    }
+  }
+
+  private static void RegisterOrphanTraders() {
+    var orphanStorages = new Dictionary<PlayerData, Entity>();
+    var orphanStands = new Dictionary<PlayerData, Entity>();
+    var orphanCoffins = new Dictionary<PlayerData, Entity>();
+
+    foreach (var entity in OrphanCandidates) {
+      var playerData = entity.Read<Follower>().Followed._Value.GetPlayerData();
+      if (playerData == null) continue;
+
+      // Check if entity is already registered (processed during plot registration)
+      if ((entity.IdEquals(Ids.Trader) && TraderEntities.ContainsKey(entity)) ||
+          (entity.IdEquals(Ids.Storage) && StorageEntities.ContainsKey(entity)) ||
+          (entity.IdEquals(Ids.Stand) && StandEntities.ContainsKey(entity))) {
+        continue;
+      }
+
+      // Add orphan entities
+      if (entity.IdEquals(Ids.Trader)) {
+        // Destroy orphaned trader entity to ensure respawn with current prefab
+        entity.Destroy();
+      } else if (entity.IdEquals(Ids.Storage)) {
+        orphanStorages[playerData] = entity;
+      } else if (entity.IdEquals(Ids.Stand)) {
+        orphanStands[playerData] = entity;
+      } else if (entity.IdEquals(Ids.Coffin)) {
+        orphanCoffins[playerData] = entity;
+      }
+    }
+
+    // Register orphan traders
+    foreach (var kvp in orphanStorages) {
       var player = kvp.Key;
-      var hasAny = traders.ContainsKey(player) || storages.ContainsKey(player) || stands.ContainsKey(player) || coffins.ContainsKey(player);
+      if (TraderById.ContainsKey(player.PlatformId)) {
+        continue; // Already has a trader registered
+      }
 
-      if (hasAny) {
-        var traderEntity = traders.GetValueOrDefault(player);
-        var storageEntity = storages.GetValueOrDefault(player);
-        var standEntity = stands.GetValueOrDefault(player);
-        var coffinEntity = coffins.GetValueOrDefault(player);
+      var storageEntity = orphanStorages.GetValueOrDefault(player);
+      var standEntity = orphanStands.GetValueOrDefault(player);
+      var traderEntity = Entity.Null; // Will be respawned by TraderModel constructor
+      var coffinEntity = orphanCoffins.GetValueOrDefault(player);
 
-        var traderModel = new TraderModel(player, storageEntity, standEntity, traderEntity, coffinEntity);
+      // Find which plot contains the majority of these entities
+      var entities = new[] { storageEntity, standEntity, coffinEntity }
+        .Where(e => e != Entity.Null)
+        .ToList();
 
+      var (targetPlot, maxEntitiesInPlot) = Plots
+        .Select(plot => new {
+          plot,
+          count = entities.Count(e => plot.IsInside(e.Position()))
+        })
+        .Where(x => x.count > 0)
+        .OrderByDescending(x => x.count)
+        .Select(x => (x.plot, x.count))
+        .FirstOrDefault();
+
+      if (targetPlot != null && maxEntitiesInPlot > 0) {
+        var traderModel = new TraderModel(player, storageEntity, standEntity, traderEntity, coffinEntity) {
+          Plot = targetPlot
+        };
+
+        targetPlot.Trader = traderModel;
+
+        // Add entities to plot buffer for future compatibility
+        if (!targetPlot.Entity.Has<AttachedBuffer>()) {
+          targetPlot.Entity.AddBuffer<AttachedBuffer>();
+        }
+
+        var plotBuffer = targetPlot.Entity.ReadBuffer<AttachedBuffer>();
+
+        var entitiesToAdd = new[] { storageEntity, standEntity, coffinEntity, traderModel.Trader }
+          .Where(e => e != Entity.Null && !BufferContainsEntity(plotBuffer, e));
+
+        foreach (var entity in entitiesToAdd) {
+          plotBuffer.Add(new AttachedBuffer { Entity = entity });
+        }
+
+        // Register in dictionaries
         TraderEntities[traderModel.Trader] = traderModel;
         StorageEntities[traderModel.StorageChest] = traderModel;
         StandEntities[traderModel.Stand] = traderModel;
         TraderById[player.PlatformId] = traderModel;
+      } else {
+        Log.Warning($"Could not find suitable plot for orphan trader of {player.Name}");
       }
     }
+  }
+
+  private static bool BufferContainsEntity(DynamicBuffer<AttachedBuffer> buffer, Entity entity) {
+    for (int i = 0; i < buffer.Length; i++) {
+      if (buffer[i].Entity == entity) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static void RegisterGhostsFromEntities(Dictionary<Entity, Entity> ghostStorages, Dictionary<Entity, Entity> ghostTraders, Dictionary<Entity, Entity> ghostCoffins) {
@@ -374,7 +484,6 @@ internal static class TraderService {
   public static void BindPlotsToTraders() {
     foreach (var plot in Plots) {
       if (!TryGetTraderInPlot(plot, out var trader)) {
-        Log.Info("No trader found in plot, showing plot instead.");
         plot.Show();
         continue;
       }
@@ -388,19 +497,18 @@ internal static class TraderService {
   }
 
   public static int ClearEmptyTraders() {
-    int count = 0;
-    foreach (var trader in TraderEntities.Values) {
-      if (trader.IsEmpty()) {
-        TraderEntities.Remove(trader.Stand);
-        StorageEntities.Remove(trader.StorageChest);
-        StandEntities.Remove(trader.Trader);
-        TraderById.Remove(trader.Owner.PlatformId);
-        trader.Plot.Show();
-        trader.Destroy();
-        count++;
-      }
+    var tradersToRemove = TraderEntities.Values.Where(trader => trader.IsEmpty()).ToList();
+
+    foreach (var trader in tradersToRemove) {
+      TraderEntities.Remove(trader.Trader);
+      StorageEntities.Remove(trader.StorageChest);
+      StandEntities.Remove(trader.Stand);
+      TraderById.Remove(trader.Owner.PlatformId);
+      trader.Plot.Show();
+      trader.Destroy();
     }
-    return count;
+
+    return tradersToRemove.Count;
   }
 
   public static int ClearEmptyPlots() {
@@ -439,9 +547,10 @@ internal static class TraderService {
     StandEntities.Clear();
     TraderById.Clear();
     Plots.Clear();
+    OrphanCandidates.Clear();
   }
 
-  public static void SendSucessSCT(PlayerData player, string message) {
+  private static void SendSCT(PlayerData player, string message) {
     ScrollingCombatTextMessage.Create(
       GameSystems.EntityManager,
       GameSystems.EndSimulationEntityCommandBufferSystem.CreateCommandBuffer(),
@@ -455,19 +564,9 @@ internal static class TraderService {
     );
   }
 
-  public static void SendErrorSCT(PlayerData player, string message) {
-    ScrollingCombatTextMessage.Create(
-      GameSystems.EntityManager,
-      GameSystems.EndSimulationEntityCommandBufferSystem.CreateCommandBuffer(),
-      AssetGuid.FromString(message),
-      player.Position,
-      new float3(1f, 0f, 0f),
-      player.CharacterEntity,
-      0,
-      SCT_PREFAB,
-      player.UserEntity
-    );
-  }
+  public static void SendSuccessSCT(PlayerData player, string message) => SendSCT(player, message);
+
+  public static void SendErrorSCT(PlayerData player, string message) => SendSCT(player, message);
 
   public static void Reload() {
     TraderEntities.Clear();
@@ -475,6 +574,7 @@ internal static class TraderService {
     StandEntities.Clear();
     TraderById.Clear();
     Plots.Clear();
+    OrphanCandidates.Clear();
 
     RegisterOnLoad();
   }

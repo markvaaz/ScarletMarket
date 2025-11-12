@@ -238,7 +238,7 @@ public static class PlayerCommands {
                 ? $"{costItem.Amount}x {costItemResult.Value.Name}"
                 : $"{costItem.Amount}x Unknown Item";
 
-              var shopName = trader.SanitizeName(trader.Name);
+              var shopName = Models.TraderModel.SanitizeName(trader.Name);
               if (string.IsNullOrWhiteSpace(shopName)) {
                 shopName = $"{trader.Owner.Name}'s Shop";
               }
@@ -313,7 +313,7 @@ public static class PlayerCommands {
                 ? $"{sellingItem.Amount}x {sellingItemResult.Value.Name}"
                 : $"{sellingItem.Amount}x Unknown Item";
 
-              var shopName = trader.SanitizeName(trader.Name);
+              var shopName = Models.TraderModel.SanitizeName(trader.Name);
               if (string.IsNullOrWhiteSpace(shopName)) {
                 shopName = $"{trader.Owner.Name}'s Shop";
               }

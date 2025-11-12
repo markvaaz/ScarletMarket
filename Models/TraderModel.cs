@@ -27,10 +27,38 @@ internal class TraderModel {
   public Entity Stand { get; private set; }
   public Entity Trader { get; private set; }
   public Entity Coffin { get; private set; }
-  public Entity DefaultStandEntity => TraderService.DefaultStandEntity;
+  public static Entity DefaultStandEntity => TraderService.DefaultStandEntity;
   public PlayerData Owner { get; private set; }
   public PrefabGUID State { get; private set; }
-  public float3 Position => Plot?.Position ?? StorageChest.Position();
+  public float3 Position {
+    get {
+      // First priority: Use plot position if available
+      if (Plot != null) {
+        return Plot.Position;
+      }
+
+      // Fallback chain: Try each entity in order of preference
+      if (!StorageChest.IsNull() && StorageChest.Exists()) {
+        return StorageChest.Position();
+      }
+
+      if (!Stand.IsNull() && Stand.Exists()) {
+        return Stand.Position();
+      }
+
+      if (!Trader.IsNull() && Trader.Exists()) {
+        return Trader.Position();
+      }
+
+      if (!Coffin.IsNull() && Coffin.Exists()) {
+        return Coffin.Position();
+      }
+
+      // Last resort: return zero position if all entities are missing
+      Log.Error($"TraderModel for {Owner?.Name ?? "Unknown"}: All entities are null or destroyed, returning zero position");
+      return float3.zero;
+    }
+  }
   // Offsets for the storage chest and trader/stand entities inside the plot
   public static int StorageRotationOffset = 3;
   public static float3 StorageOffset => new(-0.5f, 0, 0.5f);
@@ -48,10 +76,10 @@ internal class TraderModel {
   public TraderModel(PlayerData player, PlotModel plot) {
     Owner = player;
     Plot = plot;
-    StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f, Owner.UserEntity);
-    Stand = UnitSpawnerService.ImmediateSpawn(Spawnable.StandChest, Position + TraderAndStandOffset, 0f, 0f, -1f);
-    Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f, Owner.UserEntity);
-    Coffin = UnitSpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f, Owner.UserEntity);
+    StorageChest = SpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f, Owner.UserEntity);
+    Stand = SpawnerService.ImmediateSpawn(Spawnable.StandChest, Position + TraderAndStandOffset, 0f, 0f, -1f);
+    Trader = SpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f, Owner.UserEntity);
+    Coffin = SpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f, Owner.UserEntity);
     SetState(TraderState.WaitingForItem);
     SetupCoffin();
     SetupStorageChest();
@@ -68,28 +96,29 @@ internal class TraderModel {
     if (!storageChest.IsNull()) {
       StorageChest = storageChest;
     } else {
-      StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f, Owner.UserEntity);
+      StorageChest = SpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f, Owner.UserEntity);
       SetupStorageChest();
     }
 
     if (!stand.IsNull()) {
       Stand = stand;
     } else {
-      Stand = UnitSpawnerService.ImmediateSpawn(Spawnable.StandChest, Position + TraderAndStandOffset, 0f, 0f, -1f);
+      Stand = SpawnerService.ImmediateSpawn(Spawnable.StandChest, Position + TraderAndStandOffset, 0f, 0f, -1f);
       SetupStand();
     }
 
     if (!coffin.IsNull()) {
       Coffin = coffin;
     } else {
-      Coffin = UnitSpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f, Owner.UserEntity);
+      Log.Info("novo caixão criado por um motivo bizarro");
+      Coffin = SpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f, Owner.UserEntity);
       SetupCoffin();
     }
 
     if (!trader.IsNull()) {
       Trader = trader;
     } else {
-      Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f, Owner.UserEntity);
+      Trader = SpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f, Owner.UserEntity);
       SetupTrader();
       SetState(TraderState.WaitingForItem);
     }
@@ -173,7 +202,7 @@ internal class TraderModel {
     }
   }
 
-  public string SanitizeName(string name) {
+  public static string SanitizeName(string name) {
     if (string.IsNullOrWhiteSpace(name)) return string.Empty;
     return System.Text.RegularExpressions.Regex.Replace(name, @"\s*\([^)]*\)", "").Trim();
   }
@@ -513,7 +542,7 @@ internal class TraderModel {
     return false;
   }
 
-  public void AddCostWithMaxAmount(Entity entity, int slot, PrefabGUID prefabGUID, int amount, int maxAmount) {
+  public static void AddCostWithMaxAmount(Entity entity, int slot, PrefabGUID prefabGUID, int amount, int maxAmount) {
     var response = GameSystems.ServerGameManager.TryAddInventoryItem(entity, prefabGUID, 1, new(slot), false);
     var slotIndex = response.Slot;
     var items = InventoryService.GetInventoryItems(entity);
@@ -811,7 +840,7 @@ internal class TraderModel {
 
     var center = Plot?.Position ?? Position;
     var targetPos = center + TraderAndStandOffset;
-    Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, targetPos, 0f, 0f, -1f, Owner.UserEntity);
+    Trader = SpawnerService.ImmediateSpawn(Spawnable.Trader, targetPos, 0f, 0f, -1f, Owner.UserEntity);
 
     SetupTrader();
     BindCoffinServant();

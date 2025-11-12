@@ -9,6 +9,8 @@ using ScarletCore.Systems;
 using ScarletCore.Utils;
 using ScarletMarket.Models;
 using ScarletMarket.Services;
+using Unity.Collections;
+using Unity.Entities;
 using Unity.Mathematics;
 using VampireCommandFramework;
 
@@ -19,7 +21,7 @@ public static class AdminCommands {
   private static readonly Dictionary<PlayerData, PlotModel> _selectedPlots = [];
   private static readonly Dictionary<PlayerData, ActionId> _selectedActions = [];
 
-  [Command("reload", "Reloads the trader service", adminOnly: true)]
+  [Command("reload", adminOnly: true)]
   public static void ReloadTraderService(ChatCommandContext ctx) {
     TraderService.Reload();
     Plugin.ReloadSettings();
@@ -27,7 +29,7 @@ public static class AdminCommands {
     ctx.Reply("Trader service has been reloaded.".FormatSuccess());
   }
 
-  [Command("forceopen", "Force open a shop", adminOnly: true)]
+  [Command("forceopen", adminOnly: true)]
   public static void ForceOpenShop(ChatCommandContext ctx) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
       ctx.Reply("Couldn't find your player data.".FormatError());
@@ -53,7 +55,7 @@ public static class AdminCommands {
     }
   }
 
-  [Command("forceclose", "Force close a shop", adminOnly: true)]
+  [Command("forceclose", adminOnly: true)]
   public static void ForceCloseShop(ChatCommandContext ctx) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
       ctx.Reply("Couldn't find your player data.".FormatError());
@@ -77,7 +79,7 @@ public static class AdminCommands {
     ctx.Reply($"Shop {trader.Name} has been forcefully closed.".FormatSuccess());
   }
 
-  [Command("forceopenall", "Force open all shops", adminOnly: true)]
+  [Command("forceopenall", adminOnly: true)]
   public static void ForceOpenAllShops(ChatCommandContext ctx) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
       ctx.Reply("Couldn't find your player data.".FormatError());
@@ -96,7 +98,7 @@ public static class AdminCommands {
     ctx.Reply($"All shops have been forcefully opened.".FormatSuccess());
   }
 
-  [Command("forcecloseall", "Force close all shops", adminOnly: true)]
+  [Command("forcecloseall", adminOnly: true)]
   public static void ForceCloseAllShops(ChatCommandContext ctx) {
     var traders = TraderService.TraderEntities.Values;
     if (traders.Count == 0) {
@@ -221,7 +223,8 @@ public static class AdminCommands {
     });
 
     ActionScheduler.Delayed(() => {
-      ActionScheduler.CancelAction(_selectedActions[player]);
+      if (_selectedActions.TryGetValue(player, out ActionId actionId))
+        ActionScheduler.CancelAction(actionId);
     }, 180);
 
     ctx.Reply($"Plot attached to you, please move it to the desired position.".FormatSuccess());
@@ -256,7 +259,8 @@ public static class AdminCommands {
     });
 
     ActionScheduler.Delayed(() => {
-      ActionScheduler.CancelAction(_selectedActions[player]);
+      if (_selectedActions.TryGetValue(player, out ActionId actionId))
+        ActionScheduler.CancelAction(actionId);
     }, 180);
 
     ctx.Reply($"Plot attached to you, please move it to the desired position.".FormatSuccess());
@@ -456,7 +460,7 @@ public static class AdminCommands {
     ctx.Reply($"Shop {trader.Name} has been forcefully removed from the plot.".FormatSuccess());
   }
 
-  [Command("forcerename", "Change your shop's name", adminOnly: true)]
+  [Command("forcerename", adminOnly: true)]
   public static void Rename(ChatCommandContext ctx, string newName) {
     if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
       ctx.Reply("Player not found.".FormatError());
@@ -574,5 +578,226 @@ public static class AdminCommands {
   public static void RemoveAllEntities(ChatCommandContext ctx) {
     TraderService.ClearAll();
     ctx.Reply("All entities have been cleared.".FormatSuccess());
+  }
+
+  [Command("list", adminOnly: true)]
+  public static void ListShops(ChatCommandContext ctx) {
+    var traders = TraderService.TraderEntities.Values;
+
+    if (traders.Count == 0) {
+      ctx.Reply("No shops found.".FormatError());
+      return;
+    }
+
+    ctx.Reply($"Found {traders.Count} shops:".FormatSuccess());
+
+    foreach (var trader in traders) {
+      var status = trader.State == TraderState.Ready ? "Open" : "Closed";
+      var owner = trader.Owner.Name;
+      var position = $"({trader.Position.x:F1}, {trader.Position.y:F1}, {trader.Position.z:F1})";
+
+      ctx.Reply($"- ~{trader.Name}~ by {owner} [{status}] at {position}".Format());
+    }
+  }
+
+  [Command("cleanorphans", "Remove only orphaned ScarletMarket entities in radius", adminOnly: true)]
+  public static void CleanOrphanEntities(ChatCommandContext ctx, float radius) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    if (radius <= 0 || radius > 50) {
+      ctx.Reply("Radius must be between 1 and 50 meters.".FormatError());
+      return;
+    }
+
+    var playerPos = player.Position;
+    var orphanedEntities = new List<Entity>();
+    var registeredEntities = new HashSet<Entity>();
+
+    // Collect all registered entities to protect them
+    foreach (var trader in TraderService.TraderEntities.Values) {
+      registeredEntities.Add(trader.Trader);
+      registeredEntities.Add(trader.StorageChest);
+      registeredEntities.Add(trader.Stand);
+      registeredEntities.Add(trader.Coffin);
+    }
+
+    foreach (var plot in TraderService.Plots) {
+      registeredEntities.Add(plot.Entity);
+      registeredEntities.Add(plot.Inspect);
+
+      // Protect GhostTrader entities
+      if (plot.GhostPlaceholder != null) {
+        registeredEntities.Add(plot.GhostPlaceholder.StorageChest);
+        registeredEntities.Add(plot.GhostPlaceholder.Trader);
+        registeredEntities.Add(plot.GhostPlaceholder.Coffin);
+      }
+    }
+
+    // Counters for different entity types
+    var entityCounts = new Dictionary<string, int> {
+      ["Traders"] = 0,
+      ["Storage"] = 0,
+      ["Stands"] = 0,
+      ["Coffins"] = 0,
+      ["Plots"] = 0,
+      ["Inspect"] = 0,
+      ["GhostTraders"] = 0,
+      ["GhostStorage"] = 0,
+      ["GhostCoffins"] = 0
+    };
+
+    // Query for ScarletMarket entities
+    var queryBuilder = new EntityQueryBuilder(Allocator.Temp);
+    queryBuilder.AddAll(ComponentType.ReadOnly<NameableInteractable>());
+    queryBuilder.WithOptions(EntityQueryOptions.IncludeDisabled);
+
+    var query = GameSystems.EntityManager.CreateEntityQuery(ref queryBuilder).ToEntityArray(Allocator.Temp);
+
+    foreach (var entity in query) {
+      if (!entity.Has<NameableInteractable>()) continue;
+
+      // Check if it's a ScarletMarket entity and identify type
+      string entityType = null;
+      if (entity.IdEquals(Ids.Trader)) entityType = "Traders";
+      else if (entity.IdEquals(Ids.Storage)) entityType = "Storage";
+      else if (entity.IdEquals(Ids.Stand)) entityType = "Stands";
+      else if (entity.IdEquals(Ids.Coffin)) entityType = "Coffins";
+      else if (entity.IdEquals(Ids.Plot)) entityType = "Plots";
+      else if (entity.IdEquals(Ids.Inspect)) entityType = "Inspect";
+      else if (entity.IdEquals(Ids.GhostTrader)) entityType = "GhostTraders";
+      else if (entity.IdEquals(Ids.GhostStorage)) entityType = "GhostStorage";
+      else if (entity.IdEquals(Ids.GhostCoffin)) entityType = "GhostCoffins";
+
+      if (entityType == null) continue;
+
+      // Skip if registered (not orphaned)
+      if (registeredEntities.Contains(entity)) continue;
+
+      // Check if within radius
+      var entityPos = entity.Position();
+      if (math.distance(playerPos, entityPos) <= radius) {
+        orphanedEntities.Add(entity);
+        entityCounts[entityType]++;
+      }
+    }
+
+    if (orphanedEntities.Count == 0) {
+      ctx.Reply($"No orphaned ScarletMarket entities found within {radius}m.".FormatSuccess());
+      return;
+    }
+
+    // Remove orphaned entities
+    foreach (var entity in orphanedEntities) {
+      entity.Destroy();
+    }
+
+    // Build detailed message
+    var message = new StringBuilder();
+    message.AppendLine($"Removed {orphanedEntities.Count} orphaned ScarletMarket entities within {radius}m:");
+
+    foreach (var kvp in entityCounts) {
+      if (kvp.Value > 0) {
+        message.AppendLine($"- {kvp.Key}: {kvp.Value}");
+      }
+    }
+
+    ctx.Reply(message.ToString().TrimEnd().FormatSuccess());
+  }
+
+  [Command("forceremove radius", description: "Remove ALL ScarletMarket entities in radius. EXTREMELY DANGEROUS!", adminOnly: true)]
+  public static void ForceRemoveRadius(ChatCommandContext ctx, float radius, string confirmation = null) {
+    if (!PlayerService.TryGetById(ctx.User.PlatformId, out var player)) {
+      ctx.Reply("Couldn't find your player data.".FormatError());
+      return;
+    }
+
+    if (confirmation != "IAGREE") {
+      ctx.Reply("This command will ~REMOVE ALL~ ScarletMarket entities within the specified radius.".FormatError());
+      ctx.Reply("To confirm, please re-run the command with the confirmation parameter: ~.market forceremove radius <radius> IAGREE~".FormatError());
+      return;
+    }
+
+    if (radius <= 0 || radius > 50) {
+      ctx.Reply("Radius must be between 1 and 50 meters.".FormatError());
+      return;
+    }
+
+    var playerPos = player.Position;
+    var entitiesToRemove = new List<Entity>();
+
+    // Query ALL ScarletMarket entities
+    var queryBuilder = new EntityQueryBuilder(Allocator.Temp);
+    queryBuilder.AddAll(ComponentType.ReadOnly<NameableInteractable>());
+    queryBuilder.WithOptions(EntityQueryOptions.IncludeDisabled);
+
+    var query = GameSystems.EntityManager.CreateEntityQuery(ref queryBuilder).ToEntityArray(Allocator.Temp);
+
+    foreach (var entity in query) {
+      if (!entity.Has<NameableInteractable>()) continue;
+
+      // Check if it's a ScarletMarket entity
+      bool isScarletEntity =
+        entity.IdEquals(Ids.Trader) || entity.IdEquals(Ids.Storage) || entity.IdEquals(Ids.Stand) ||
+        entity.IdEquals(Ids.Coffin) || entity.IdEquals(Ids.Plot) || entity.IdEquals(Ids.Inspect) ||
+        entity.IdEquals(Ids.GhostTrader) || entity.IdEquals(Ids.GhostStorage) || entity.IdEquals(Ids.GhostCoffin);
+
+      if (!isScarletEntity) continue;
+
+      var entityPos = entity.Position();
+      if (math.distance(playerPos, entityPos) <= radius) {
+        entitiesToRemove.Add(entity);
+      }
+    }
+
+    if (entitiesToRemove.Count == 0) {
+      ctx.Reply($"No ScarletMarket entities found within {radius}m.".FormatSuccess());
+      return;
+    }
+
+    // Remove entities from registry first
+    var tradersToRemove = new List<TraderModel>();
+    var plotsToRemove = new List<PlotModel>();
+
+    foreach (var entity in entitiesToRemove) {
+      // Find and mark traders for removal
+      var trader = TraderService.GetTrader(entity);
+      if (trader != null && !tradersToRemove.Contains(trader)) {
+        tradersToRemove.Add(trader);
+      }
+
+      // Find and mark plots for removal
+      foreach (var plot in TraderService.Plots) {
+        if (plot.Entity == entity || plot.Inspect == entity) {
+          if (!plotsToRemove.Contains(plot)) {
+            plotsToRemove.Add(plot);
+          }
+        }
+      }
+    }
+
+    // Remove from registry
+    foreach (var trader in tradersToRemove) {
+      TraderService.TraderEntities.Remove(trader.Trader);
+      TraderService.StorageEntities.Remove(trader.StorageChest);
+      TraderService.StandEntities.Remove(trader.Stand);
+      TraderService.TraderById.Remove(trader.Owner.PlatformId);
+    }
+
+    foreach (var plot in plotsToRemove) {
+      TraderService.Plots.Remove(plot);
+    }
+
+    // Destroy entities
+    int removed = 0;
+    foreach (var entity in entitiesToRemove) {
+      entity.Destroy();
+      removed++;
+    }
+
+    ctx.Reply($"FORCE REMOVED {removed} ScarletMarket entities within {radius}m.".FormatSuccess());
+    ctx.Reply($"Removed {tradersToRemove.Count} traders and {plotsToRemove.Count} plots from registry.".Format());
   }
 }

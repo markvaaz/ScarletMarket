@@ -31,9 +31,9 @@ internal class GhostTraderModel {
   public GhostTraderModel(PlotModel plot) {
     Plot = plot;
     Position = plot.Position;
-    StorageChest = UnitSpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f);
-    Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f);
-    Coffin = UnitSpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f);
+    StorageChest = SpawnerService.ImmediateSpawn(Spawnable.StorageChest, Position + StorageOffset, 0f, 0f, -1f);
+    Trader = SpawnerService.ImmediateSpawn(Spawnable.Trader, Position + TraderAndStandOffset, 0f, 0f, -1f);
+    Coffin = SpawnerService.ImmediateSpawn(Spawnable.Coffin, Position + new float3(0, COFFIN_HEIGHT, 0), 0f, 0f, -1f);
 
     SetupGhostCoffin();
     SetupGhostStorageChest();
@@ -242,7 +242,7 @@ internal class GhostTraderModel {
 
     var center = Plot?.Position ?? Position;
     var targetPos = center + TraderAndStandOffset;
-    Trader = UnitSpawnerService.ImmediateSpawn(Spawnable.Trader, targetPos, 0f, 0f, -1f);
+    Trader = SpawnerService.ImmediateSpawn(Spawnable.Trader, targetPos, 0f, 0f, -1f);
 
     SetupGhostTrader();
     BindCoffinServant();

@@ -38,17 +38,11 @@ public class Plugin : BasePlugin {
 
     LoadSettings();
     CommandRegistry.RegisterAll();
-
-    if (GameSystems.Initialized) {
-      OnInitialize(null, null);
-    } else {
-      EventManager.OnInitialize += OnInitialize;
-    }
+    GameSystems.OnInitialize(OnInitialize);
   }
 
-  public static void OnInitialize(object _, InitializeEventArgs args) {
+  public static void OnInitialize() {
     TraderService.Initialize();
-    EventManager.OnInitialize -= OnInitialize;
   }
 
   public override bool Unload() {

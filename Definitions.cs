@@ -22,7 +22,6 @@ internal static class GameData {
   public static NativeParallelHashMap<PrefabGUID, Entity> PrefabGuidToEntityMap => GameSystems.PrefabCollectionSystem._PrefabGuidToEntityMap;
 }
 
-
 internal static class SCTMessages {
   public const string Disabled = "3bf7e066-4e49-4ae4-b7a3-6703b7a15dc1";
   public const string Enabled = "f0c8d1b2-3e4a-4c5b-8f6d-7e8f9a0b1c2d";

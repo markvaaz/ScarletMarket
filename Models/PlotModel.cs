@@ -27,7 +27,7 @@ internal class PlotModel {
     }
     Entity = GameSystems.EntityManager.Instantiate(prefab);
     Entity.SetId(Ids.Plot);
-    Inspect = UnitSpawnerService.ImmediateSpawn(Spawnable.Inspect, position, 0f, 0f, -1f);
+    Inspect = SpawnerService.ImmediateSpawn(Spawnable.Inspect, position, 0f, 0f, -1f);
     Inspect.SetId(Ids.Inspect);
     Inspect.Write(new Script_InspectTarget_Data());
     Inspect.AddWith((ref Follower follower) => {

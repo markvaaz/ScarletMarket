@@ -62,8 +62,11 @@ ScarletMarket transforms designated plot areas into player-owned shops. When you
 * `.market remove shop` - Remove a shop from a plot (must be empty)
 * `.market forceremove shop` - Forcefully remove a shop and its plot (deletes all items inside)
 * `.market forcerename "<name>"` - Admin rename any shop
-* `.market forceopen` - Force open a shop
-* `.market forceclose` - Force close a shop
+* `.market forceopen` - Force open a shop in current plot
+* `.market forceopenall` - Force open all shops on the server
+* `.market forceclose` - Force close a shop in current plot
+* `.market forcecloseall` - Force close all shops on the server
+* `.market list` - List all shops with their status, owners, and positions
 
 **Access Control:**
 * `.market claimaccess` - Gain access to view any shop's contents (view only, cannot add/remove items). While active, the shop owner cannot access their shop
@@ -79,6 +82,8 @@ ScarletMarket transforms designated plot areas into player-owned shops. When you
 * `.market clear emptyshops` - Remove all empty shops
 * `.market getinactive <days>` - List shops inactive for X days
 * `.market iwanttoclearinactiveshops <days>` - Remove shops inactive for X days (deletes all items inside)
+* `.market cleanorphans <radius>` - Remove only orphaned ScarletMarket entities within radius (1-50 meters)
+* `.market forceremove radius <radius> IAGREE` - **EXTREMELY DANGEROUS:** Remove ALL ScarletMarket entities within radius (deletes all items inside)
 * `.market iwanttoremoveeverything` - **DANGER:** Remove all market entities (deletes all items inside)
 
 ### Shop Management
@@ -140,12 +145,6 @@ Make sure BepInEx is installed and loaded **before** installing ScarletMarket.
 
 Server administrators can configure various aspects of ScarletMarket through the mod's settings:
 
-* **Plot claiming requirements** - Set required items/resources to claim plots
-* **Shop naming permissions** - Allow or restrict custom shop names
-* **Maximum prices** - Limit the maximum amount players can charge
-* **Plot management** - Control plot creation and removal
-* **Currency items** - Define which items can be used as prices for trading
-
 ### Configuration Files
 
 After first launch, the following configuration files will be created:
@@ -155,6 +154,25 @@ After first launch, the following configuration files will be created:
 
 **Currency Database:**
 * `BepInEx/config/ScarletMarket/ItemPrefabNames.json` - Contains the list of items that can be used as currency/prices in the market system
+
+### Configuration Options
+
+**General Settings:**
+* **Empty Plot Name** (default: "Empty Plot") - Default name for empty trader plots when no custom name is set
+* **Allow Custom Shop Names** (default: true) - Allow players to rename their shops using `.market rename`
+* **Closed Text** (default: "Closed") - Text appended to shop names when they're closed for editing
+
+**Trader Settings:**
+* **Trader Prefab** (default: 40217214) - GUID of the NPC servant to use as traders. Only servant-type characters are supported
+
+**Plot Purchase Requirements:**
+* **Prefab GUID** (default: 0) - Item GUID required to claim a plot. Set to 0 to make plots free
+* **Amount** (default: 0) - Number of items required to claim a plot. Set to 0 for free claiming
+
+**Trader Timeout System:**
+* **Trader Timeout Enabled** (default: false) - Enable automatic removal of inactive trader shops
+* **Max Inactive Days** (default: 15) - Maximum days a player can be offline before shop removal
+* **Remove Empty Traders on Startup** (default: true) - Clean up empty shops when server starts
 
 ### Currency System Management
 

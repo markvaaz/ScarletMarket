@@ -678,7 +678,7 @@ public static class AdminCommands {
 
       // Check if within radius
       var entityPos = entity.Position();
-      if (math.distance(playerPos, entityPos) <= radius) {
+      if (math.distance(playerPos.xz, entityPos.xz) <= radius) {
         orphanedEntities.Add(entity);
         entityCounts[entityType]++;
       }
@@ -747,7 +747,7 @@ public static class AdminCommands {
       if (!isScarletEntity) continue;
 
       var entityPos = entity.Position();
-      if (math.distance(playerPos, entityPos) <= radius) {
+      if (math.distance(playerPos.xz, entityPos.xz) <= radius) {
         entitiesToRemove.Add(entity);
       }
     }
